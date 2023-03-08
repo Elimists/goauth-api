@@ -262,7 +262,13 @@ func SendVerificationCode(email string, verificationCode string) bool {
 	subject := "Subject: Makers Verification Code\n"
 	from := "maker@example.com"
 	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
-	body := fmt.Sprintf("<html><body><p>Here is your verification code: <code>%s</code></p></body></html>\n\n", verificationCode)
+	body := fmt.Sprintf(`
+		<html>
+			<div  style="font-size:20px; font-family: Arial, serif;">
+				<p>Here is your verification code: <code style="font-weight: bold;">%s</code></p>
+			</div>
+		</html>
+		`, verificationCode)
 	msg := []byte(subject + mime + body)
 
 	err := smtp.SendMail("sandbox.smtp.mailtrap.io:2525", auth, from, to, msg)
