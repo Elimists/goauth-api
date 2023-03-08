@@ -2,7 +2,9 @@ package controller
 
 import (
 	"errors"
+	"fmt"
 	"math/rand"
+	"net/smtp"
 	"regexp"
 	"strconv"
 	"strings"
@@ -73,13 +75,13 @@ func Register(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(rp)
 	}
 
-	user := models.User{
-		Email: data["email"],
-	}
-	if userErr := database.DB.Create(&user).Error; userErr != nil {
-		database.DB.Delete(&auth).Where("email = ?", data["email"])
-		database.DB.Delete(&verification).Where("email = ?", data["email"])
-		rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Internal server error. Could not register user."}
+	//Send verification email here
+	emailSendingError := SendVerificationCode(data["email"], verification.Code)
+
+	if emailSendingError {
+		database.DB.Where("email = ?", data["email"]).Delete(&verification)
+		database.DB.Where("email = ?", data["email"]).Delete(&auth)
+		rp := models.ResponsePacket{Error: false, Code: "email_sending_error", Message: "Unable to send email.DB Row rollbacked."}
 		return c.Status(fiber.StatusInternalServerError).JSON(rp)
 	}
 
@@ -104,9 +106,13 @@ func Login(c *fiber.Ctx) error {
 
 	if err := database.DB.Where("email = ?", data["email"]).First(&auth).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			rp := models.ResponsePacket{Error: true, Code: "not_found", Message: "Email not found!"}
-			return c.Status(fiber.StatusNotFound).JSON(rp)
+			return &fiber.Error{Code: fiber.StatusNotFound, Message: "Account not found!"}
 		}
+	}
+
+	if !auth.Verified {
+		rp := models.ResponsePacket{Error: true, Code: "email_unverified", Message: "User is not verfied."}
+		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
 	expiry := jwt.NewNumericDate(time.Now().Add(24 * time.Hour))
@@ -119,39 +125,23 @@ func Login(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(rp)
 	}
 
-	claims := models.CustomClaims{
-		Email:     auth.Email,
-		Verified:  auth.Verified,
-		Privilege: auth.Privilege,
-		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    "Mak-Mak-Ch",
-			ExpiresAt: expiry,
-		},
+	claims := jwt.MapClaims{
+		"email":     auth.Email,
+		"verified":  auth.Verified,
+		"privilege": auth.Privilege,
+		"exp":       expiry,
 	}
-
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	ss, err := token.SignedString(SECRET_KEY)
+	signedToken, err := token.SignedString(SECRET_KEY)
 
 	if err != nil {
-		rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Could not log in." + err.Error()}
+		rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Could not sign token."}
 		return c.Status(fiber.StatusInternalServerError).JSON(rp)
-	}
-
-	expires := time.Now().Add(time.Hour * 8)
-	if data["longexpiry"] == "yes" {
-		expires = time.Now().Add(time.Hour * 244) // JWT token expires after 10 days.
-	}
-
-	cookie := fiber.Cookie{
-		Name:     "mmc_cookie",
-		Value:    ss,
-		Expires:  expires,
-		HTTPOnly: true,
 	}
 
 	database.DB.Model(&auth).Where("email = ?", data["email"]).Update("last_logged_in", time.Now().Unix()) // update the last logged in datetime
 
-	c.Cookie(&cookie)
+	c.Append("X-Maker-Token", signedToken)
 
 	rp := models.ResponsePacket{Error: false, Code: "successfull", Message: "Login successfull"}
 	return c.Status(fiber.StatusOK).JSON(rp)
@@ -200,6 +190,32 @@ func VerifyEmail(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusAccepted).JSON(rp)
 }
 
+func UpdatePassword(c *fiber.Ctx) error {
+	var data map[string]string
+
+	if err := c.BodyParser(&data); err != nil {
+		rp := models.ResponsePacket{Error: true, Code: "empty_body", Message: "Nothing in body"}
+		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
+	}
+
+	if len(data["oldpassword"]) <= 0 || len(data["newpassword"]) <= 0 {
+		rp := models.ResponsePacket{Error: true, Code: "missing_data", Message: "Form is missing required data!"}
+		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
+	}
+
+	//TODO - Implement changing password functionality
+	if !passwordIsValid(data["oldpassword"]) || !passwordIsValid(data["newpassword"]) {
+		rp := models.ResponsePacket{Error: true, Code: "invalid_password", Message: "Password is not strong enough."}
+		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
+	}
+	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthroized"})
+
+}
+
+func ResetPassword(c *fiber.Ctx) error {
+	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthroized"})
+}
+
 //__________________________________________________________________________
 /*
 * HELPER FUNCTIONS
@@ -240,4 +256,35 @@ func generateVerificationCode() string {
 	min := 10101
 	max := 99999
 	return strconv.Itoa((rand.Intn(max-min+1) + min))
+}
+
+// Send the verification code to the user.
+func SendVerificationCode(email string, verificationCode string) bool {
+	// Set up authentication information.
+	auth := smtp.PlainAuth("", "231c63d58c7571", "15065dc065bf4c", "sandbox.smtp.mailtrap.io")
+
+	// Connect to the server, authenticate, set the sender and recipient,
+	// and send the email all in one step.
+	to := []string{email}
+	subject := "Subject: Makers Verification Code\n"
+	from := "maker@example.com"
+
+	/*
+		body := fmt.Sprintf("Here is your verification code: %s\r\n", verificationCode)
+		message := fmt.Sprintf("From: %s\r\n", from)
+		message += fmt.Sprintf("To: %s\r\n", to)
+		message += fmt.Sprintf("Subject: %s\r\n", subject)
+		message += fmt.Sprintf("\r\n%s\r\n", body)
+	*/
+
+	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
+	body := fmt.Sprintf("<html><body><h4>Here is your verification code: %s</h4></body></html>\n\n", verificationCode)
+	msg := []byte(subject + mime + body)
+
+	err := smtp.SendMail("sandbox.smtp.mailtrap.io:2525", auth, from, to, msg)
+	if err != nil {
+		return true
+	}
+
+	return false
 }

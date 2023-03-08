@@ -14,31 +14,13 @@ import (
 )
 
 func GetUser(c *fiber.Ctx) error {
-	cookie := c.Cookies("mmc_cookie")
-	token, err := jwt.ParseWithClaims(cookie, &models.CustomClaims{},
-		func(token *jwt.Token) (interface{}, error) {
-			return SECRET_KEY, nil
-		})
 
-	if err != nil {
-		rp := models.ResponsePacket{Error: true, Code: "parsing_error", Message: "Unable to parse token."}
-		return c.Status(fiber.StatusInternalServerError).JSON(rp)
-	}
-
-	if !token.Valid {
-		rp := models.ResponsePacket{Error: true, Code: "token_error", Message: "Invalid token"}
-		return c.Status(fiber.StatusUnauthorized).JSON(rp)
-	}
-
-	claims, ok := token.Claims.(*models.CustomClaims)
-	if !ok {
-		rp := models.ResponsePacket{Error: true, Code: "claims_error", Message: "Un..claimable"}
-		return c.Status(fiber.StatusUnauthorized).JSON(rp)
-	}
+	token := c.Locals("user").(*jwt.Token)
+	claims := token.Claims.(jwt.MapClaims)
 
 	var user models.User
 
-	if err := database.DB.Where("email = ?", &claims.Email).First(&user).Error; err != nil {
+	if err := database.DB.Where("email = ?", claims["email"].(string)).First(&user).Error; err != nil {
 		rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Internal server error"}
 		return c.Status(fiber.StatusInternalServerError).JSON(rp)
 	}
@@ -47,26 +29,13 @@ func GetUser(c *fiber.Ctx) error {
 }
 
 func GetAllUsers(c *fiber.Ctx) error {
-	cookie := c.Cookies("mmc_cookie")
-	token, err := jwt.ParseWithClaims(cookie, &models.CustomClaims{},
-		func(token *jwt.Token) (interface{}, error) {
-			return SECRET_KEY, nil
-		})
 
-	if err != nil {
-		rp := models.ResponsePacket{Error: true, Code: "parsing_error", Message: "Unable to parse token."}
-		return c.Status(fiber.StatusInternalServerError).JSON(rp)
-	}
+	token := c.Locals("user").(*jwt.Token)
+	claims := token.Claims.(jwt.MapClaims)
 
-	if !token.Valid {
-		rp := models.ResponsePacket{Error: true, Code: "token_error", Message: "Invalid token"}
-		return c.Status(fiber.StatusUnauthorized).JSON(rp)
-	}
-
-	_, ok := token.Claims.(*models.CustomClaims)
-	if !ok {
-		rp := models.ResponsePacket{Error: true, Code: "claims_error", Message: "Un..claimable"}
-		return c.Status(fiber.StatusUnauthorized).JSON(rp)
+	if claims["privilege"].(float64) > 3 {
+		rp := models.ResponsePacket{Error: true, Code: "insufficient_privileges", Message: "You do not have sufficient privilege to perform this action!"}
+		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
 	RETURN_LIMIT := 30
@@ -83,30 +52,10 @@ func GetAllUsers(c *fiber.Ctx) error {
 	database.DB.Offset(offset).Limit(RETURN_LIMIT).Find(&users)
 
 	return c.Status(fiber.StatusAccepted).JSON(&users)
+
 }
 
 func UpdateUser(c *fiber.Ctx) error {
-
-	cookie := c.Cookies("mmc_cookie")
-	token, err := jwt.ParseWithClaims(cookie, &models.CustomClaims{},
-		func(token *jwt.Token) (interface{}, error) {
-			return SECRET_KEY, nil
-		})
-
-	if err != nil {
-		rp := models.ResponsePacket{Error: true, Code: "parsing_error", Message: "Unable to parse token."}
-		return c.Status(fiber.StatusInternalServerError).JSON(rp)
-	}
-	if !token.Valid {
-		rp := models.ResponsePacket{Error: true, Code: "token_error", Message: "Invalid token"}
-		return c.Status(fiber.StatusUnauthorized).JSON(rp)
-	}
-
-	claims, ok := token.Claims.(*models.CustomClaims)
-	if !ok {
-		rp := models.ResponsePacket{Error: true, Code: "claims_error", Message: "Un..claimable"}
-		return c.Status(fiber.StatusUnauthorized).JSON(rp)
-	}
 
 	var data map[string]string
 
@@ -123,7 +72,10 @@ func UpdateUser(c *fiber.Ctx) error {
 		Bio:          data["bio"],
 	}
 
-	if err := database.DB.Where("email = ?", &claims.Email).Updates(&user).Error; err != nil {
+	token := c.Locals("user").(*jwt.Token)
+	claims := token.Claims.(jwt.MapClaims)
+
+	if err := database.DB.Where("email = ?", claims["email"].(string)).Updates(&user).Error; err != nil {
 		rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Internal server error. Could not update user info"}
 		return c.Status(fiber.StatusInternalServerError).JSON(rp)
 	}
@@ -133,24 +85,6 @@ func UpdateUser(c *fiber.Ctx) error {
 }
 
 func UpdateProfilePic(c *fiber.Ctx) error {
-
-	token, err := HandleTokenCheck(c)
-
-	if err != nil {
-		rp := models.ResponsePacket{Error: true, Code: "parsing_error", Message: "Unable to parse token."}
-		return c.Status(fiber.StatusInternalServerError).JSON(rp)
-	}
-
-	if !token.Valid {
-		rp := models.ResponsePacket{Error: true, Code: "token_error", Message: "Invalid token"}
-		return c.Status(fiber.StatusUnauthorized).JSON(rp)
-	}
-
-	claims, ok := token.Claims.(*models.CustomClaims)
-	if !ok {
-		rp := models.ResponsePacket{Error: true, Code: "claims_error", Message: "Un..claimable"}
-		return c.Status(fiber.StatusUnauthorized).JSON(rp)
-	}
 
 	file, err := c.FormFile("profilepic")
 	if err != nil {
@@ -174,18 +108,21 @@ func UpdateProfilePic(c *fiber.Ctx) error {
 
 	var user models.User
 
-	if err := database.DB.Where("email = ?", &claims.Email).First(&user).Error; err != nil {
+	token := c.Locals("user").(*jwt.Token)
+	claims := token.Claims.(jwt.MapClaims)
+
+	if err := database.DB.Where("email = ?", claims["email"].(string)).First(&user).Error; err != nil {
 		rp := models.ResponsePacket{Error: true, Code: "not_found", Message: "User not found."}
 		return c.Status(fiber.StatusNotFound).JSON(rp)
 	}
 
 	if len(user.Picture) != 0 {
 		if err := os.Remove(fmt.Sprintf("./uploads/users/profilepics/%s", user.Picture)); err != nil {
-			database.DB.Model(&user).Where("email = ?", &claims.Email).Update("picture", "")
+			database.DB.Model(&user).Where("email = ?", claims["email"].(string)).Update("picture", "")
 			rp := models.ResponsePacket{Error: true, Code: "unable_to_delete", Message: "Unable to update profile pic."}
 			return c.Status(fiber.StatusInternalServerError).JSON(rp)
 		}
-		if err := database.DB.Model(&user).Where("email = ?", &claims.Email).Update("picture", "").Error; err != nil {
+		if err := database.DB.Model(&user).Where("email = ?", claims["email"].(string)).Update("picture", "").Error; err != nil {
 			rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Could not delete existing image string from database" + err.Error()}
 			return c.Status(fiber.StatusInternalServerError).JSON(rp)
 		}
@@ -193,14 +130,14 @@ func UpdateProfilePic(c *fiber.Ctx) error {
 
 	image := fmt.Sprintf("%s.%s", filename, filext)
 
-	if err := database.DB.Model(&user).Where("email = ?", &claims.Email).Update("picture", image).Error; err != nil {
+	if err := database.DB.Model(&user).Where("email = ?", claims["email"].(string)).Update("picture", image).Error; err != nil {
 		rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Could not save image string to database" + err.Error()}
 		return c.Status(fiber.StatusInternalServerError).JSON(rp)
 	}
 
 	if err := c.SaveFile(file, fmt.Sprintf("./uploads/users/profilepics/%s", image)); err != nil {
 		rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Internal error. Unable to save profile pic. Line 156 - " + err.Error()}
-		database.DB.Model(&user).Where("email = ?", &claims.Email).Update("picture", "")
+		database.DB.Model(&user).Where("email = ?", claims["email"].(string)).Update("picture", "")
 		return c.Status(fiber.StatusInternalServerError).JSON(rp)
 	}
 
@@ -210,26 +147,12 @@ func UpdateProfilePic(c *fiber.Ctx) error {
 
 func GetProfilePic(c *fiber.Ctx) error {
 
-	token, err := HandleTokenCheck(c)
-
-	if err != nil {
-		rp := models.ResponsePacket{Error: true, Code: "parsing_error", Message: "Unable to parse token."}
-		return c.Status(fiber.StatusInternalServerError).JSON(rp)
-	}
-	if !token.Valid {
-		rp := models.ResponsePacket{Error: true, Code: "token_error", Message: "Invalid token"}
-		return c.Status(fiber.StatusUnauthorized).JSON(rp)
-	}
-
-	claims, ok := token.Claims.(*models.CustomClaims)
-	if !ok {
-		rp := models.ResponsePacket{Error: true, Code: "claims_error", Message: "Un..claimable"}
-		return c.Status(fiber.StatusUnauthorized).JSON(rp)
-	}
+	token := c.Locals("user").(*jwt.Token)
+	claims := token.Claims.(jwt.MapClaims)
 
 	var user models.User
 
-	if err := database.DB.Where("email = ?", &claims.Email).First(&user).Error; err != nil {
+	if err := database.DB.Where("email = ?", claims["email"].(string)).First(&user).Error; err != nil {
 		rp := models.ResponsePacket{Error: true, Code: "not_found", Message: "User not found."}
 		return c.Status(fiber.StatusNotFound).JSON(rp)
 	}
