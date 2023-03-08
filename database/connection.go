@@ -1,6 +1,9 @@
 package database
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/Elimists/go-app/models"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -16,7 +19,10 @@ func Connect() {
 		connection := fmt.Sprintf("%s:%s@/devdb?parseTime=true", user, pass)
 	*/
 
-	stringConn := "root:password@/devdb?parseTime=true"
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	database := os.Getenv("DB_DATABASE")
+	stringConn := fmt.Sprintf("%s:%s@/%s?parseTime=true", user, password, database)
 
 	db_conn, err := gorm.Open(mysql.Open(stringConn), &gorm.Config{
 		//Logger: logger.Default.LogMode(logger.Silent),
