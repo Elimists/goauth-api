@@ -9,7 +9,6 @@ import (
 	"github.com/Elimists/go-app/database"
 	"github.com/Elimists/go-app/models"
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -77,34 +76,34 @@ func GetDeviceComments(c *fiber.Ctx) error {
 }
 
 func AddDevice(c *fiber.Ctx) error {
+	/*
+		cookie := c.Cookies("mmc_cookie")
 
-	cookie := c.Cookies("mmc_cookie")
+		authpacket := Checkauth(cookie)
 
-	authpacket := Checkauth(cookie)
+		if authpacket.Error {
+			return c.Status(fiber.StatusUnauthorized).JSON(authpacket)
+		}
 
-	if authpacket.Error {
-		return c.Status(fiber.StatusUnauthorized).JSON(authpacket)
-	}
-
-	var device models.Device
-	if err := c.BodyParser(&device); err != nil {
-		rp := models.ResponsePacket{Error: true, Code: "empty_body", Message: "Nothing in body"}
-		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
-	}
-
-	device.UUID = uuid.NewString()
-	device.UrlSafeName = strings.ToLower(strings.ReplaceAll(device.Name, " ", "_"))
-	device.Author = authpacket.Claim.Email
-
-	if err := database.DB.Create(&device).Error; err != nil {
-		if strings.Contains(err.Error(), "Duplicate entry") {
-			rp := models.ResponsePacket{Error: true, Code: "create_error", Message: "Device with that name already exists. Please use another name"}
+		var device models.Device
+		if err := c.BodyParser(&device); err != nil {
+			rp := models.ResponsePacket{Error: true, Code: "empty_body", Message: "Nothing in body"}
 			return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 		}
-		rp := models.ResponsePacket{Error: true, Code: "create_error", Message: "Unable to create device. Internal error"}
-		return c.Status(fiber.StatusInternalServerError).JSON(rp)
-	}
 
+		device.UUID = uuid.NewString()
+		device.UrlSafeName = strings.ToLower(strings.ReplaceAll(device.Name, " ", "_"))
+		device.Author = authpacket.Claim.Email
+
+		if err := database.DB.Create(&device).Error; err != nil {
+			if strings.Contains(err.Error(), "Duplicate entry") {
+				rp := models.ResponsePacket{Error: true, Code: "create_error", Message: "Device with that name already exists. Please use another name"}
+				return c.Status(fiber.StatusNotAcceptable).JSON(rp)
+			}
+			rp := models.ResponsePacket{Error: true, Code: "create_error", Message: "Unable to create device. Internal error"}
+			return c.Status(fiber.StatusInternalServerError).JSON(rp)
+		}
+	*/
 	rp := models.ResponsePacket{Error: false, Code: "create_success", Message: "Device created succesfully"}
 	return c.Status(fiber.StatusAccepted).JSON(rp)
 }

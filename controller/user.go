@@ -159,13 +159,3 @@ func GetProfilePic(c *fiber.Ctx) error {
 
 	return c.SendFile(fmt.Sprintf("./uploads/users/profilepics/%s", user.Picture), true)
 }
-
-func HandleTokenCheck(c *fiber.Ctx) (*jwt.Token, error) {
-	cookie := c.Cookies("mmc_cookie")
-	token, err := jwt.ParseWithClaims(cookie, &models.CustomClaims{},
-		func(token *jwt.Token) (interface{}, error) {
-			return SECRET_KEY, nil
-		})
-
-	return token, err
-}

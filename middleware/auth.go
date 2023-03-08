@@ -1,15 +1,15 @@
 package middleware
 
 import (
+	"os"
+
 	"github.com/gofiber/fiber/v2"
 	jwtware "github.com/gofiber/jwt/v3"
 )
 
-var SUPER_SECRET = []byte("K7yx09lpbR")
-
 func Protected() func(*fiber.Ctx) error {
 	return jwtware.New(jwtware.Config{
-		SigningKey:   []byte(SUPER_SECRET),
+		SigningKey:   []byte(os.Getenv("SECRET_KEY")),
 		ErrorHandler: jwtError,
 	})
 }

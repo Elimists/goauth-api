@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/smtp"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -18,8 +19,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
-
-var SECRET_KEY = []byte("K7yx09lpbR")
 
 func Register(c *fiber.Ctx) error {
 	var data map[string]string
@@ -132,7 +131,8 @@ func Login(c *fiber.Ctx) error {
 		"exp":       expiry,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err := token.SignedString(SECRET_KEY)
+	signedToken, err := token.SignedString([]byte(os.Getenv("SECRET_KEY")))
+	//fmt.Println("Secret Key in Env: ", os.Getenv("SECRET_KEY"))
 
 	if err != nil {
 		rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Could not sign token."}
