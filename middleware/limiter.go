@@ -7,9 +7,9 @@ import (
 	limiter "github.com/gofiber/fiber/v2/middleware/limiter"
 )
 
-//Limits the connection on a route.
+//Limits the # of requests a ip can send.
 //
-//Takes in the maximum number of connections (int) and expirate time (seconds)
+//Takes in the maximum number of connections (# of request allowed as integer) and expirate time (retry after in seconds)
 func Limiter(maximumNumOfConnections int, expirationTimeInSeconds time.Duration) func(*fiber.Ctx) error {
 	return limiter.New(limiter.Config{
 		Max:        maximumNumOfConnections,

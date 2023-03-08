@@ -263,22 +263,11 @@ func SendVerificationCode(email string, verificationCode string) bool {
 	// Set up authentication information.
 	auth := smtp.PlainAuth("", "231c63d58c7571", "15065dc065bf4c", "sandbox.smtp.mailtrap.io")
 
-	// Connect to the server, authenticate, set the sender and recipient,
-	// and send the email all in one step.
 	to := []string{email}
 	subject := "Subject: Makers Verification Code\n"
 	from := "maker@example.com"
-
-	/*
-		body := fmt.Sprintf("Here is your verification code: %s\r\n", verificationCode)
-		message := fmt.Sprintf("From: %s\r\n", from)
-		message += fmt.Sprintf("To: %s\r\n", to)
-		message += fmt.Sprintf("Subject: %s\r\n", subject)
-		message += fmt.Sprintf("\r\n%s\r\n", body)
-	*/
-
 	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
-	body := fmt.Sprintf("<html><body><h4>Here is your verification code: %s</h4></body></html>\n\n", verificationCode)
+	body := fmt.Sprintf("<html><body><p>Here is your verification code: <code>%s</code></p></body></html>\n\n", verificationCode)
 	msg := []byte(subject + mime + body)
 
 	err := smtp.SendMail("sandbox.smtp.mailtrap.io:2525", auth, from, to, msg)
