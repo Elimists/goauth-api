@@ -88,11 +88,9 @@ func Register(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(rp)
 }
 
-/*
-* LOGIN
-* Handles the login flow.
-* @returns:
- */
+// Login route method
+//
+// On success, sets X-Maker-Token:{token} in header.
 func Login(c *fiber.Ctx) error {
 	var data map[string]string
 
@@ -132,7 +130,6 @@ func Login(c *fiber.Ctx) error {
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signedToken, err := token.SignedString([]byte(os.Getenv("SECRET_KEY")))
-	//fmt.Println("Secret Key in Env: ", os.Getenv("SECRET_KEY"))
 
 	if err != nil {
 		rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Could not sign token."}
@@ -147,11 +144,9 @@ func Login(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(rp)
 }
 
-/*
-* VERIFY EMAIL
-* Handles the email verification flowError
-* @returns: http status and JSON response
- */
+// Email Verification Route
+//
+// TODO Needs to me changed to link verification method
 func VerifyEmail(c *fiber.Ctx) error {
 	var data map[string]string
 
