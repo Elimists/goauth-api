@@ -13,12 +13,6 @@ var DB *gorm.DB
 
 func Connect() {
 
-	/*
-		user := os.Getenv("MYSQL_USER")
-		pass := os.Getenv("MYSQL_PASS")
-		connection := fmt.Sprintf("%s:%s@/devdb?parseTime=true", user, pass)
-	*/
-
 	user := os.Getenv("DB_USER")
 	password := os.Getenv("DB_PASSWORD")
 	database := os.Getenv("DB_DATABASE")
