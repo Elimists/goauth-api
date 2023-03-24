@@ -1,16 +1,12 @@
 package controller
 
 import (
-	"fmt"
-	"os"
 	"strconv"
-	"strings"
 
 	"github.com/Elimists/go-app/database"
 	"github.com/Elimists/go-app/models"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
-	"github.com/google/uuid"
 )
 
 func GetUser(c *fiber.Ctx) error {
@@ -30,13 +26,15 @@ func GetUser(c *fiber.Ctx) error {
 
 func GetAllUsers(c *fiber.Ctx) error {
 
-	token := c.Locals("user").(*jwt.Token)
-	claims := token.Claims.(jwt.MapClaims)
+	/*
+		token := c.Locals("user").(*jwt.Token)
+		claims := token.Claims.(jwt.MapClaims)
 
-	if claims["privilege"].(float64) > 3 {
-		rp := models.ResponsePacket{Error: true, Code: "insufficient_privileges", Message: "You do not have sufficient privilege to perform this action!"}
-		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
-	}
+		if claims["privilege"].(float64) > 3 {
+			rp := models.ResponsePacket{Error: true, Code: "insufficient_privileges", Message: "You do not have sufficient privilege to perform this action!"}
+			return c.Status(fiber.StatusNotAcceptable).JSON(rp)
+		}
+	*/
 
 	RETURN_LIMIT := 30
 	params := c.AllParams()
@@ -65,7 +63,8 @@ func UpdateUser(c *fiber.Ctx) error {
 	}
 
 	user := models.User{
-		Name:         data["name"],
+		FirstName:    data["firstname"],
+		LastName:     data["lastname"],
 		Education:    data["education"],
 		Occupation:   data["occupation"],
 		Organization: data["organization"],
@@ -83,6 +82,8 @@ func UpdateUser(c *fiber.Ctx) error {
 	rp := models.ResponsePacket{Error: false, Code: "update_successfull", Message: "User info successfully updated."}
 	return c.Status(fiber.StatusCreated).JSON(rp)
 }
+
+/*
 
 func UpdateProfilePic(c *fiber.Ctx) error {
 
@@ -159,3 +160,4 @@ func GetProfilePic(c *fiber.Ctx) error {
 
 	return c.SendFile(fmt.Sprintf("./uploads/users/profilepics/%s", user.Picture), true)
 }
+*/

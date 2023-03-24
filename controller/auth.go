@@ -28,6 +28,54 @@ func Register(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
+	password, _ := bcrypt.GenerateFromPassword([]byte(data["password"]), 12)
+
+	user := models.User{
+		FirstName: data["firstName"],
+		LastName:  data["lastName"],
+	}
+	auth := models.UserAuth{
+		Email:     data["email"],
+		Password:  password,
+		Verified:  false,
+		Privilege: 9, // General user.
+		UserID:    user.ID,
+		User:      user,
+	}
+
+	/*
+		user := models.User{
+			FirstName: data["firstName"],
+			LastName:  data["lastName"],
+			AuthID:    auth.ID,
+			Auth:      auth,
+		}
+	*/
+
+	userErr := database.DB.Create(&auth).Error
+
+	if userErr != nil {
+		if strings.Contains(userErr.Error(), "Duplicate entry") {
+			rp := models.ResponsePacket{Error: true, Code: "duplicate_email", Message: "Email already exists!"}
+			return c.Status(fiber.StatusNotAcceptable).JSON(rp)
+		}
+		rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Internal server error. Could not register user."}
+		return c.Status(fiber.StatusInternalServerError).JSON(rp)
+	}
+
+	rp := models.ResponsePacket{Error: false, Code: "user_registered", Message: `models.User`}
+	return c.Status(fiber.StatusCreated).JSON(rp)
+}
+
+/*
+func Register(c *fiber.Ctx) error {
+	var data map[string]string
+
+	if err := c.BodyParser(&data); err != nil {
+		rp := models.ResponsePacket{Error: true, Code: "empty_body", Message: "Nothing in body"}
+		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
+	}
+
 	if !emailIsValid(data["email"]) {
 		rp := models.ResponsePacket{Error: true, Code: "invalid_email", Message: "Email is not a valid type."}
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
@@ -48,6 +96,13 @@ func Register(c *fiber.Ctx) error {
 		Privilege:    9, // General user.
 		RegisteredOn: uint(datetime),
 		LastLoggedIn: uint(datetime),
+	}
+
+	user := models.User{
+		FirstName: data["firstName"],
+		LastName:  data["lastName"],
+		AuthID:    auth.ID,
+		Auth:      auth,
 	}
 
 	authErr := database.DB.Create(&auth).Error
@@ -87,6 +142,7 @@ func Register(c *fiber.Ctx) error {
 	rp := models.ResponsePacket{Error: false, Code: "user_registered", Message: "User successfully registered."}
 	return c.Status(fiber.StatusCreated).JSON(rp)
 }
+*/
 
 // Login route method
 //
@@ -99,7 +155,7 @@ func Login(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
-	var auth models.Auth
+	var auth models.UserAuth
 
 	if err := database.DB.Where("email = ?", data["email"]).First(&auth).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -146,7 +202,7 @@ func Login(c *fiber.Ctx) error {
 
 // Email Verification Route
 //
-// TODO Needs to me changed to link verification method
+// TODO Needs to be changed to a link verification method
 func VerifyEmail(c *fiber.Ctx) error {
 	var data map[string]string
 
@@ -155,7 +211,7 @@ func VerifyEmail(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
-	var verification models.Verification
+	var verification models.UserAuth
 
 	if err := database.DB.Where("email = ?", data["email"]).First(&verification).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -164,12 +220,12 @@ func VerifyEmail(c *fiber.Ctx) error {
 		}
 	}
 
-	if uint(time.Now().Unix()) > verification.Expires {
+	if uint(time.Now().Unix()) > verification.VerificationExpiry {
 		rp := models.ResponsePacket{Error: true, Code: "expired", Message: "Verfication time frame has expired."}
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
-	if verification.Code != data["code"] {
+	if verification.VerificationCode != data["code"] {
 		rp := models.ResponsePacket{Error: true, Code: "code_mismatch", Message: "Verification code does not match."}
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
@@ -208,6 +264,7 @@ func UpdatePassword(c *fiber.Ctx) error {
 }
 
 func ResetPassword(c *fiber.Ctx) error {
+	//TODO
 	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthroized"})
 }
 

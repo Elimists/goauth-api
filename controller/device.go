@@ -61,7 +61,7 @@ func GetDeviceComments(c *fiber.Ctx) error {
 
 	offset := (pagenum - 1) * RETURN_LIMIT
 
-	var comments []*models.Comment
+	var comments []*models.Review
 
 	if err := database.DB.Offset(offset).Limit(RETURN_LIMIT).Where("id = ?", &id).Preload("Capabilities").Preload("Disabilities").Preload("Usages").Find(&comments).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
