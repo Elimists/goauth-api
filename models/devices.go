@@ -15,7 +15,8 @@ type Device struct {
 	Disabilities   []DeviceDisability
 	Usages         []DeviceUsage
 	Images         []DeviceImage
-	Reviews        []Review
+	Reviews        []Review // List of reviews the user has submitted for various devices.
+	UserID         uint     `json:"userID"`
 }
 
 type DeviceCapability struct {

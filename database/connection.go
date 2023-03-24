@@ -27,20 +27,24 @@ func Connect() {
 
 	DB = db_conn
 
+	// Generate tables using the model if they don't exist.
 	db_conn.AutoMigrate(
 		&models.Auth{},
+
 		&models.User{},
 		&models.UserAddress{},
 		&models.UserRequest{},
 		&models.UserMake{},
 		&models.UserIdea{},
 		&models.UserProfilePicture{},
+
 		&models.Device{},
 		&models.DeviceCapability{},
 		&models.DeviceDisability{},
 		&models.DeviceUsage{},
 		&models.DeviceFile{},
 		&models.DeviceImage{},
+
 		&models.Review{},
 	)
 }
