@@ -8,10 +8,10 @@ import "gorm.io/gorm"
  */
 type Auth struct {
 	gorm.Model
-	Email        string `gorm:"unique"`
-	Password     []byte `json:"-"`
-	Verified     bool
-	Privilege    int8 // 1: Admin, 2: Manager, 3: Coordinator, 4: Moderator, 9: General user
-	RegisteredOn uint
-	LastLoggedIn uint
+	Email     string `gorm:"unique"`
+	Password  []byte `json:"-"`
+	Verified  bool
+	Privilege int8 // 1: Admin, 2: Manager, 3: Coordinator, 4: Moderator, 9: General user
+	UserID    uint
+	User      User
 }
