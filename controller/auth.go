@@ -34,7 +34,7 @@ func Register(c *fiber.Ctx) error {
 		FirstName: data["firstName"],
 		LastName:  data["lastName"],
 	}
-	auth := models.Auth{
+	auth := models.UserAuth{
 		Email:     data["email"],
 		Password:  password,
 		Verified:  false,
@@ -155,7 +155,7 @@ func Login(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
-	var auth models.Auth
+	var auth models.UserAuth
 
 	if err := database.DB.Where("email = ?", data["email"]).First(&auth).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -211,7 +211,7 @@ func VerifyEmail(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
-	var verification models.Verification
+	var verification models.UserAuth
 
 	if err := database.DB.Where("email = ?", data["email"]).First(&verification).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -220,12 +220,12 @@ func VerifyEmail(c *fiber.Ctx) error {
 		}
 	}
 
-	if uint(time.Now().Unix()) > verification.Expires {
+	if uint(time.Now().Unix()) > verification.VerificationExpiry {
 		rp := models.ResponsePacket{Error: true, Code: "expired", Message: "Verfication time frame has expired."}
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
-	if verification.Code != data["code"] {
+	if verification.VerificationCode != data["code"] {
 		rp := models.ResponsePacket{Error: true, Code: "code_mismatch", Message: "Verification code does not match."}
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}

@@ -2,6 +2,18 @@ package models
 
 import "gorm.io/gorm"
 
+type UserAuth struct {
+	gorm.Model
+	Email              string `gorm:"unique"`
+	Password           []byte `json:"-"`
+	Privilege          int8   // 1: Admin, 2: Manager, 3: Coordinator, 4: Moderator, 9: General user
+	Verified           bool
+	VerificationCode   string
+	VerificationExpiry uint
+	UserID             uint
+	User               User
+}
+
 type User struct {
 	gorm.Model
 	FirstName    string        `json:"firstName"`
@@ -17,8 +29,6 @@ type User struct {
 	Makes        []UserMake    `json:"makes"`    // List of devices the user has helped make.
 	Ideas        []UserIdea    `json:"ideas"`    // List of ideas and or suggestions the user has submitted.
 	Reviews      []Review      `json:"reviews"`  // List of reviews the user has submitted for various devices.
-	//AuthID       uint          `json:"authID"`
-	//Auth         Auth          `json:"auth"`
 }
 
 type UserAddress struct {
