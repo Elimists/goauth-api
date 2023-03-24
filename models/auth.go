@@ -1,11 +1,13 @@
 package models
 
+import "gorm.io/gorm"
+
 /**
 * The Auth model describes the fields related to user
 * authentication and authorization.
  */
 type Auth struct {
-	Id           uint
+	gorm.Model
 	Email        string `gorm:"unique"`
 	Password     []byte `json:"-"`
 	Verified     bool
