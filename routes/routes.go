@@ -19,7 +19,7 @@ func AllRoutes(app *fiber.App) {
 
 	/*USER Routes*/
 	app.Get(fmt.Sprintf("api/%s/getuser", version), controller.GetUser)
-	app.Get(fmt.Sprintf("api/%s/getprofilepic", version), controller.GetProfilePic)
+	//app.Get(fmt.Sprintf("api/%s/getprofilepic", version), controller.GetProfilePic)
 
 	/*DEVICE Routes*/
 	app.Get(fmt.Sprintf("api/%s/getdevices/:pagenumber", version), controller.GetDevices)
@@ -31,7 +31,7 @@ func AllRoutes(app *fiber.App) {
 	app.Get(fmt.Sprintf("api/%s/getallusers", version), middleware.Protected(), controller.GetAllUsers)
 	app.Patch(fmt.Sprintf("/api/%s/updateuser", version), middleware.Protected(), middleware.Limiter(6, 60), controller.UpdateUser)
 	app.Post(fmt.Sprintf("api/%s/createdevice", version), middleware.Protected(), controller.AddDevice)
-	app.Patch(fmt.Sprintf("api/%s/uploadpic", version), middleware.Protected(), controller.UpdateProfilePic)
+	//app.Patch(fmt.Sprintf("api/%s/uploadpic", version), middleware.Protected(), controller.UpdateProfilePic)
 	app.Post(fmt.Sprintf("/api/%s/updatepassword", version), middleware.Protected(), middleware.Limiter(6, 45), controller.UpdatePassword)
 
 }

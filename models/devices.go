@@ -4,43 +4,42 @@ import "gorm.io/gorm"
 
 type Device struct {
 	gorm.Model
-	UUID           string `json:"-" gorm:"primaryKey;unique"` //uuid Generated
 	Name           string `gorm:"unique"`
 	UrlSafeName    string `gorm:"unique"` // Generated
 	Difficulty     string `gorm:"not null"`
-	Author         string `gorm:"not null"` //Use logged in email as author
 	TimeToComplete string `gorm:"not null"`
 	MaterialCost   string `gorm:"not null"`
 	License        string `gorm:"not null"`
 	Stage          string `gorm:"not null"`
-	Capabilities   []Capability
-	Disabilities   []Disability
-	Usages         []Usage
-	Images         []Image
+	Capabilities   []DeviceCapability
+	Disabilities   []DeviceDisability
+	Usages         []DeviceUsage
+	Images         []DeviceImage
+	Reviews        []Review
 }
 
-type Capability struct {
+type DeviceCapability struct {
 	gorm.Model
 	Name        string `gorm:"not null"`
 	Description string
 	DeviceID    uint
 }
 
-type Disability struct {
+type DeviceDisability struct {
 	gorm.Model
 	Name        string `gorm:"not null"`
 	Description string
 	DeviceID    uint
 }
 
-type Usage struct {
+type DeviceUsage struct {
 	gorm.Model
 	Name        string `gorm:"not null"`
 	Description string
 	DeviceID    uint
 }
 
-type File struct {
+type DeviceFile struct {
 	gorm.Model
 	Name             string `gorm:"not null"`
 	Description      string
@@ -49,18 +48,9 @@ type File struct {
 	DeviceID         uint
 }
 
-type Image struct {
+type DeviceImage struct {
 	gorm.Model
 	Title       string `gorm:"not null"`
 	Description string
 	DeviceID    uint
-}
-
-type Comment struct {
-	gorm.Model
-	Author   string
-	Title    string
-	Details  string
-	Rating   string
-	DeviceID uint
 }

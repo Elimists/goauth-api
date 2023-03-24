@@ -146,7 +146,7 @@ func Login(c *fiber.Ctx) error {
 
 // Email Verification Route
 //
-// TODO Needs to me changed to link verification method
+// TODO Needs to be changed to a link verification method
 func VerifyEmail(c *fiber.Ctx) error {
 	var data map[string]string
 
@@ -208,6 +208,7 @@ func UpdatePassword(c *fiber.Ctx) error {
 }
 
 func ResetPassword(c *fiber.Ctx) error {
+	//TODO
 	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthroized"})
 }
 

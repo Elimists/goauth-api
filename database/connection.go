@@ -28,14 +28,6 @@ func Connect() {
 	DB = db_conn
 
 	db_conn.AutoMigrate(&models.Auth{})
-	db_conn.AutoMigrate(&models.Verification{})
-	db_conn.AutoMigrate(&models.User{})
-	db_conn.AutoMigrate(&models.Device{})
-	db_conn.AutoMigrate(&models.Capability{})
-	db_conn.AutoMigrate(&models.Device{})
-	db_conn.AutoMigrate(&models.Disability{})
-	db_conn.AutoMigrate(&models.Usage{})
-	db_conn.AutoMigrate(&models.File{})
-	db_conn.AutoMigrate(&models.Image{})
-	db_conn.AutoMigrate(&models.Comment{})
+	db_conn.AutoMigrate(&models.Review{})
+	db_conn.AutoMigrate(&models.Device{}, &models.DeviceCapability{}, &models.DeviceDisability{}, &models.DeviceUsage{}, &models.DeviceFile{}, &models.DeviceImage{})
 }
