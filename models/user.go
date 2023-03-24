@@ -17,7 +17,7 @@ type User struct {
 	Makes        []UserMake    `json:"makes"`    // List of devices the user has helped make.
 	Ideas        []UserIdea    `json:"ideas"`    // List of ideas and or suggestions the user has submitted.
 	Reviews      []Review      `json:"reviews"`  // List of reviews the user has submitted for various devices.
-	AuthID       uint          `json:"-"`
+	AuthID       uint          `json:"-" gorm:"unique"`
 }
 
 type UserAddress struct {
