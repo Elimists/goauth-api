@@ -2,18 +2,6 @@ package models
 
 import "gorm.io/gorm"
 
-type UserAuth struct {
-	gorm.Model
-	Email              string `gorm:"unique"`
-	Password           []byte `json:"-"`
-	Privilege          int8   // 1: Admin, 2: Manager, 3: Coordinator, 4: Moderator, 9: General user
-	Verified           bool
-	VerificationCode   string
-	VerificationExpiry uint
-	UserID             uint
-	User               User
-}
-
 type User struct {
 	gorm.Model
 	FirstName    string        `json:"firstName"`
@@ -31,6 +19,18 @@ type User struct {
 	Reviews      []Review      `json:"reviews"`  // List of reviews the user has submitted for various devices.
 }
 
+type UserAuth struct {
+	gorm.Model
+	Email              string `gorm:"unique"`
+	Password           []byte `json:"-"`
+	Privilege          int8   // 1: Admin, 2: Manager, 3: Coordinator, 4: Moderator, 9: General user
+	Verified           bool
+	VerificationCode   string
+	VerificationExpiry uint
+	UserID             uint
+	User               User `gorm:"constraint:OnDelete:CASCADE;"` // If the user is deleted, delete the user's authentication data.
+}
+
 type UserAddress struct {
 	gorm.Model
 	StreetAddress string `json:"streetAddress"`
@@ -40,6 +40,7 @@ type UserAddress struct {
 	Country       string `json:"country"`
 	IsActive      bool   `json:"isActive"`
 	UserID        uint   `json:"userID"`
+	User          User   `gorm:"constraint:OnDelete:CASCADE;"` // If the user is deleted, delete the address.
 }
 
 type UserRequest struct {
@@ -47,6 +48,7 @@ type UserRequest struct {
 	UserID   uint   `json:"userID"`
 	DeviceID uint   `json:"deviceID"`
 	Device   Device `json:"device"`
+	User     User   `gorm:"constraint:OnDelete:CASCADE;"` // If the user is deleted, delete all the requests.
 }
 
 type UserMake struct {
@@ -54,6 +56,7 @@ type UserMake struct {
 	UserID   uint   `json:"userID"`
 	DeviceID uint   `json:"deviceID"`
 	Device   Device `json:"device"`
+	User     User   `gorm:"constraint:OnDelete:CASCADE;"`
 }
 
 type UserIdea struct {
@@ -61,6 +64,7 @@ type UserIdea struct {
 	Title   string `json:"title"`
 	Content string `json:"content"`
 	UserID  uint   `json:"userID"`
+	User    User   `gorm:"constraint:OnDelete:CASCADE;"` // If the user is deleted, delete all the user submitted ideas.
 }
 
 type UserProfilePicture struct {
@@ -69,4 +73,5 @@ type UserProfilePicture struct {
 	UserImage    []byte `json:"userImage"`
 	ImageAltText string `json:"imageAltText"`
 	UserID       uint   `json:"userID"`
+	User         User   `gorm:"constraint:OnDelete:CASCADE;"`
 }

@@ -15,8 +15,9 @@ type Device struct {
 	Disabilities   []DeviceDisability
 	Usages         []DeviceUsage
 	Images         []DeviceImage
-	Reviews        []Review // List of reviews the user has submitted for various devices.
+	Reviews        []Review // List of reviews users have submitted for this device
 	UserID         uint     `json:"userID"`
+	User           User     `gorm:"constraint:OnDelete:SetNull;"` // If the user is deleted, set the device's user to null.
 }
 
 type DeviceCapability struct {
@@ -24,6 +25,7 @@ type DeviceCapability struct {
 	Name        string `gorm:"not null"`
 	Description string
 	DeviceID    uint
+	Device      Device `gorm:"constraint:OnDelete:CASCADE;"` // If the device is deleted, delete the device's capabilities.
 }
 
 type DeviceDisability struct {
@@ -31,6 +33,7 @@ type DeviceDisability struct {
 	Name        string `gorm:"not null"`
 	Description string
 	DeviceID    uint
+	Device      Device `gorm:"constraint:OnDelete:CASCADE;"` // If the device is deleted, delete the device's disabilities.
 }
 
 type DeviceUsage struct {
@@ -38,6 +41,7 @@ type DeviceUsage struct {
 	Name        string `gorm:"not null"`
 	Description string
 	DeviceID    uint
+	Device      Device `gorm:"constraint:OnDelete:CASCADE;"` // If the device is deleted, delete the device's usages.
 }
 
 type DeviceFile struct {
@@ -47,6 +51,7 @@ type DeviceFile struct {
 	DiscLocationName string
 	FileSize         uint
 	DeviceID         uint
+	Device           Device `gorm:"constraint:OnDelete:CASCADE;"` // If the device is deleted, delete the device's files.
 }
 
 type DeviceImage struct {
@@ -54,4 +59,5 @@ type DeviceImage struct {
 	Title       string `gorm:"not null"`
 	Description string
 	DeviceID    uint
+	Device      Device `gorm:"constraint:OnDelete:CASCADE;"` // If the device is deleted, delete the device's images.
 }

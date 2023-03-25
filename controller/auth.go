@@ -20,54 +20,10 @@ import (
 	"gorm.io/gorm"
 )
 
-func Register(c *fiber.Ctx) error {
-	var data map[string]string
-
-	if err := c.BodyParser(&data); err != nil {
-		rp := models.ResponsePacket{Error: true, Code: "empty_body", Message: "Nothing in body"}
-		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
-	}
-
-	password, _ := bcrypt.GenerateFromPassword([]byte(data["password"]), 12)
-
-	user := models.User{
-		FirstName: data["firstName"],
-		LastName:  data["lastName"],
-	}
-	auth := models.UserAuth{
-		Email:     data["email"],
-		Password:  password,
-		Verified:  false,
-		Privilege: 9, // General user.
-		UserID:    user.ID,
-		User:      user,
-	}
-
-	/*
-		user := models.User{
-			FirstName: data["firstName"],
-			LastName:  data["lastName"],
-			AuthID:    auth.ID,
-			Auth:      auth,
-		}
-	*/
-
-	userErr := database.DB.Create(&auth).Error
-
-	if userErr != nil {
-		if strings.Contains(userErr.Error(), "Duplicate entry") {
-			rp := models.ResponsePacket{Error: true, Code: "duplicate_email", Message: "Email already exists!"}
-			return c.Status(fiber.StatusNotAcceptable).JSON(rp)
-		}
-		rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Internal server error. Could not register user."}
-		return c.Status(fiber.StatusInternalServerError).JSON(rp)
-	}
-
-	rp := models.ResponsePacket{Error: false, Code: "user_registered", Message: `models.User`}
-	return c.Status(fiber.StatusCreated).JSON(rp)
-}
-
-/*
+// Register a new user.
+//
+// @Summary Register a new user.
+// @Description Register a new user and send them a verification email.
 func Register(c *fiber.Ctx) error {
 	var data map[string]string
 
@@ -87,28 +43,27 @@ func Register(c *fiber.Ctx) error {
 	}
 
 	password, _ := bcrypt.GenerateFromPassword([]byte(data["password"]), 12)
-	datetime := time.Now().Unix()
-
-	auth := models.Auth{
-		Email:        data["email"],
-		Password:     password,
-		Verified:     false,
-		Privilege:    9, // General user.
-		RegisteredOn: uint(datetime),
-		LastLoggedIn: uint(datetime),
-	}
 
 	user := models.User{
 		FirstName: data["firstName"],
 		LastName:  data["lastName"],
-		AuthID:    auth.ID,
-		Auth:      auth,
 	}
 
-	authErr := database.DB.Create(&auth).Error
+	auth := models.UserAuth{
+		Email:              data["email"],
+		Password:           password,
+		Privilege:          9, // General user.]
+		Verified:           false,
+		VerificationCode:   generateVerificationCode(),
+		VerificationExpiry: uint(time.Now().Add(time.Minute * 30).Unix()),
+		UserID:             user.ID,
+		User:               user,
+	}
 
-	if authErr != nil {
-		if strings.Contains(authErr.Error(), "Duplicate entry") {
+	userErr := database.DB.Create(&auth).Error
+
+	if userErr != nil {
+		if strings.Contains(userErr.Error(), "Duplicate entry") {
 			rp := models.ResponsePacket{Error: true, Code: "duplicate_email", Message: "Email already exists!"}
 			return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 		}
@@ -116,33 +71,18 @@ func Register(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(rp)
 	}
 
-	verification := models.Verification{
-		Code:    generateVerificationCode(),
-		Email:   data["email"],
-		Expires: uint(time.Now().Add(time.Minute * 30).Unix()),
-	}
-
-	verifyErr := database.DB.Create(&verification).Error
-	if verifyErr != nil {
-		database.DB.Delete(&auth).Where("email = ?", data["email"]) // delete the row created prior in Auth table
-		rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Internal server error. Could not register user."}
-		return c.Status(fiber.StatusInternalServerError).JSON(rp)
-	}
-
 	//Send verification email here
-	emailSendingError := SendVerificationCode(data["email"], verification.Code)
+	emailSendingError := SendVerificationCode(data["email"], auth.VerificationCode)
 
 	if emailSendingError {
-		database.DB.Where("email = ?", data["email"]).Delete(&verification)
 		database.DB.Where("email = ?", data["email"]).Delete(&auth)
 		rp := models.ResponsePacket{Error: false, Code: "email_sending_error", Message: "Unable to send email.DB Row rollbacked."}
 		return c.Status(fiber.StatusInternalServerError).JSON(rp)
 	}
 
-	rp := models.ResponsePacket{Error: false, Code: "user_registered", Message: "User successfully registered."}
+	rp := models.ResponsePacket{Error: false, Code: "user_registered", Message: `models.User`}
 	return c.Status(fiber.StatusCreated).JSON(rp)
 }
-*/
 
 // Login route method
 //
