@@ -44,23 +44,25 @@ func Register(c *fiber.Ctx) error {
 
 	password, _ := bcrypt.GenerateFromPassword([]byte(data["password"]), 12)
 
-	user := models.User{
-		FirstName: data["firstName"],
-		LastName:  data["lastName"],
-	}
-
-	auth := models.UserAuth{
+	auth := models.User{
 		Email:              data["email"],
 		Password:           password,
 		Privilege:          9, // General user.]
 		Verified:           false,
 		VerificationCode:   generateVerificationCode(),
 		VerificationExpiry: uint(time.Now().Add(time.Minute * 30).Unix()),
-		UserID:             user.ID,
-		User:               user,
+		//UserID:             user.ID,
+		//User:               user,
 	}
 
-	userErr := database.DB.Create(&auth).Error
+	user := models.UserDetails{
+		FirstName: data["firstName"],
+		LastName:  data["lastName"],
+		//UserID:    auth.ID,
+		//User:      auth,
+	}
+
+	userErr := database.DB.Create(&user).Error
 
 	if userErr != nil {
 		if strings.Contains(userErr.Error(), "Duplicate entry") {
@@ -95,11 +97,12 @@ func Login(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
-	var auth models.UserAuth
+	var auth models.User
 
 	if err := database.DB.Where("email = ?", data["email"]).First(&auth).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return &fiber.Error{Code: fiber.StatusNotFound, Message: "Account not found!"}
+			rp := models.ResponsePacket{Error: true, Code: "account_not_found", Message: "Account not found!"}
+			return c.Status(fiber.StatusNotFound).JSON(rp)
 		}
 	}
 
@@ -120,6 +123,7 @@ func Login(c *fiber.Ctx) error {
 
 	claims := jwt.MapClaims{
 		"email":     auth.Email,
+		"id":        auth.ID,
 		"verified":  auth.Verified,
 		"privilege": auth.Privilege,
 		"exp":       expiry,
@@ -132,7 +136,7 @@ func Login(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(rp)
 	}
 
-	database.DB.Model(&auth).Where("email = ?", data["email"]).Update("last_logged_in", time.Now().Unix()) // update the last logged in datetime
+	database.DB.Model(&auth).Where("email = ?", data["email"]).Update("updated_at", time.Now()) // update the last logged in datetime
 
 	c.Append("X-Maker-Token", signedToken)
 
@@ -151,7 +155,7 @@ func VerifyEmail(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
-	var verification models.UserAuth
+	var verification models.User
 
 	if err := database.DB.Where("email = ?", data["email"]).First(&verification).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {

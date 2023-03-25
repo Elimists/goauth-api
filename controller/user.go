@@ -47,7 +47,7 @@ func GetAllUsers(c *fiber.Ctx) error {
 
 	var users []*models.User
 
-	database.DB.Offset(offset).Limit(RETURN_LIMIT).Find(&users)
+	database.DB.Offset(offset).Limit(RETURN_LIMIT).Preload("User").Find(&users)
 
 	return c.Status(fiber.StatusAccepted).JSON(&users)
 
@@ -62,7 +62,7 @@ func UpdateUser(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
-	user := models.User{
+	user := models.UserDetails{
 		FirstName:    data["firstname"],
 		LastName:     data["lastname"],
 		Education:    data["education"],

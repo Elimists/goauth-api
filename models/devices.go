@@ -4,20 +4,19 @@ import "gorm.io/gorm"
 
 type Device struct {
 	gorm.Model
-	Name           string `gorm:"unique"`
-	UrlSafeName    string `gorm:"unique"` // Generated
-	Difficulty     string `gorm:"not null"`
-	TimeToComplete string `gorm:"not null"`
-	MaterialCost   string `gorm:"not null"`
-	License        string `gorm:"not null"`
-	Stage          string `gorm:"not null"`
-	Capabilities   []DeviceCapability
-	Disabilities   []DeviceDisability
-	Usages         []DeviceUsage
-	Images         []DeviceImage
-	Reviews        []Review // List of reviews users have submitted for this device
-	UserID         uint     `json:"userID"`
-	User           User     `gorm:"constraint:OnDelete:SetNull;"` // If the user is deleted, set the device's user to null.
+	Name           string             `gorm:"unique"`
+	UrlSafeName    string             `gorm:"unique"` // Generated
+	Difficulty     string             `gorm:"not null"`
+	TimeToComplete string             `gorm:"not null"`
+	MaterialCost   string             `gorm:"not null"`
+	License        string             `gorm:"not null"`
+	Stage          string             `gorm:"not null"`
+	Capabilities   []DeviceCapability `gorm:"constraint:OnDelete:CASCADE;"` // If the device is deleted, delete the capabilities for this device.
+	Disabilities   []DeviceDisability `gorm:"constraint:OnDelete:CASCADE;"`
+	Usages         []DeviceUsage      `gorm:"constraint:OnDelete:CASCADE;"`
+	Images         []DeviceImage      `gorm:"constraint:OnDelete:CASCADE;"`
+	Reviews        []Review           `gorm:"constraint:OnDelete:CASCADE;"`
+	UserDetailsID  uint               `json:"userID"`
 }
 
 type DeviceCapability struct {
@@ -25,7 +24,6 @@ type DeviceCapability struct {
 	Name        string `gorm:"not null"`
 	Description string
 	DeviceID    uint
-	Device      Device `gorm:"constraint:OnDelete:CASCADE;"` // If the device is deleted, delete the device's capabilities.
 }
 
 type DeviceDisability struct {
@@ -33,15 +31,13 @@ type DeviceDisability struct {
 	Name        string `gorm:"not null"`
 	Description string
 	DeviceID    uint
-	Device      Device `gorm:"constraint:OnDelete:CASCADE;"` // If the device is deleted, delete the device's disabilities.
 }
 
 type DeviceUsage struct {
 	gorm.Model
 	Name        string `gorm:"not null"`
 	Description string
-	DeviceID    uint
-	Device      Device `gorm:"constraint:OnDelete:CASCADE;"` // If the device is deleted, delete the device's usages.
+	DeviceID    uint // References the device in the Device table.
 }
 
 type DeviceFile struct {
@@ -51,7 +47,6 @@ type DeviceFile struct {
 	DiscLocationName string
 	FileSize         uint
 	DeviceID         uint
-	Device           Device `gorm:"constraint:OnDelete:CASCADE;"` // If the device is deleted, delete the device's files.
 }
 
 type DeviceImage struct {
@@ -59,5 +54,4 @@ type DeviceImage struct {
 	Title       string `gorm:"not null"`
 	Description string
 	DeviceID    uint
-	Device      Device `gorm:"constraint:OnDelete:CASCADE;"` // If the device is deleted, delete the device's images.
 }
