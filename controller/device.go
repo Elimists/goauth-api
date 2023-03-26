@@ -126,6 +126,14 @@ func SaveFile(c *fiber.Ctx) error {
 	return c.JSON("")
 }
 
+func UpdateDevice(c *fiber.Ctx) error {
+	return c.JSON("")
+}
+
+func DeleteDevice(c *fiber.Ctx) error {
+	return c.JSON("")
+}
+
 func SaveImages(c *fiber.Ctx) error {
 
 	form, err := c.MultipartForm()

@@ -47,22 +47,17 @@ func Register(c *fiber.Ctx) error {
 	auth := models.User{
 		Email:              data["email"],
 		Password:           password,
-		Privilege:          9, // General user.]
+		Privilege:          9, // General user.
 		Verified:           false,
 		VerificationCode:   generateVerificationCode(),
 		VerificationExpiry: uint(time.Now().Add(time.Minute * 30).Unix()),
-		//UserID:             user.ID,
-		//User:               user,
+		UserDetails: models.UserDetails{
+			FirstName: data["firstName"],
+			LastName:  data["lastName"],
+		},
 	}
 
-	user := models.UserDetails{
-		FirstName: data["firstName"],
-		LastName:  data["lastName"],
-		//UserID:    auth.ID,
-		//User:      auth,
-	}
-
-	userErr := database.DB.Create(&user).Error
+	userErr := database.DB.Create(&auth).Error
 
 	if userErr != nil {
 		if strings.Contains(userErr.Error(), "Duplicate entry") {

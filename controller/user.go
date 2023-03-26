@@ -83,81 +83,18 @@ func UpdateUser(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(rp)
 }
 
-/*
-
-func UpdateProfilePic(c *fiber.Ctx) error {
-
-	file, err := c.FormFile("profilepic")
-	if err != nil {
-		rp := models.ResponsePacket{Error: true, Code: "no_attachment", Message: "No pictures attached" + err.Error()}
-		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
-	}
-
-	//fmt.Println(file.Size)
-	if file.Size > 75000 {
-		rp := models.ResponsePacket{Error: true, Code: "too_large", Message: "Profile picture is too large. Image must be less than 75kb"}
-		return c.Status(fiber.StatusRequestEntityTooLarge).JSON(rp)
-	}
-
-	id := uuid.New()
-	filename := strings.Replace(id.String(), "-", "", -1)
-	filext := strings.Split(file.Filename, ".")[1]
-	if filext != "jpg" && filext != "png" {
-		rp := models.ResponsePacket{Error: true, Code: "unsupported_type", Message: "Unsupported image type."}
-		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
-	}
-
-	var user models.User
-
-	token := c.Locals("user").(*jwt.Token)
-	claims := token.Claims.(jwt.MapClaims)
-
-	if err := database.DB.Where("email = ?", claims["email"].(string)).First(&user).Error; err != nil {
-		rp := models.ResponsePacket{Error: true, Code: "not_found", Message: "User not found."}
-		return c.Status(fiber.StatusNotFound).JSON(rp)
-	}
-
-	if len(user.Picture) != 0 {
-		if err := os.Remove(fmt.Sprintf("./uploads/users/profilepics/%s", user.Picture)); err != nil {
-			database.DB.Model(&user).Where("email = ?", claims["email"].(string)).Update("picture", "")
-			rp := models.ResponsePacket{Error: true, Code: "unable_to_delete", Message: "Unable to update profile pic."}
-			return c.Status(fiber.StatusInternalServerError).JSON(rp)
-		}
-		if err := database.DB.Model(&user).Where("email = ?", claims["email"].(string)).Update("picture", "").Error; err != nil {
-			rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Could not delete existing image string from database" + err.Error()}
-			return c.Status(fiber.StatusInternalServerError).JSON(rp)
-		}
-	}
-
-	image := fmt.Sprintf("%s.%s", filename, filext)
-
-	if err := database.DB.Model(&user).Where("email = ?", claims["email"].(string)).Update("picture", image).Error; err != nil {
-		rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Could not save image string to database" + err.Error()}
-		return c.Status(fiber.StatusInternalServerError).JSON(rp)
-	}
-
-	if err := c.SaveFile(file, fmt.Sprintf("./uploads/users/profilepics/%s", image)); err != nil {
-		rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Internal error. Unable to save profile pic. Line 156 - " + err.Error()}
-		database.DB.Model(&user).Where("email = ?", claims["email"].(string)).Update("picture", "")
-		return c.Status(fiber.StatusInternalServerError).JSON(rp)
-	}
-
-	rp := models.ResponsePacket{Error: false, Code: "save_successfull", Message: "Profile image updated successfully."}
-	return c.Status(fiber.StatusAccepted).JSON(rp)
+func GetAddress(c *fiber.Ctx) error {
+	return c.Status(fiber.StatusOK).JSON(&models.ResponsePacket{Error: false, Code: "success", Message: "Address added successfully"})
 }
 
-func GetProfilePic(c *fiber.Ctx) error {
-
-	token := c.Locals("user").(*jwt.Token)
-	claims := token.Claims.(jwt.MapClaims)
-
-	var user models.User
-
-	if err := database.DB.Where("email = ?", claims["email"].(string)).First(&user).Error; err != nil {
-		rp := models.ResponsePacket{Error: true, Code: "not_found", Message: "User not found."}
-		return c.Status(fiber.StatusNotFound).JSON(rp)
-	}
-
-	return c.SendFile(fmt.Sprintf("./uploads/users/profilepics/%s", user.Picture), true)
+func AddAddress(c *fiber.Ctx) error {
+	return c.Status(fiber.StatusOK).JSON(&models.ResponsePacket{Error: false, Code: "success", Message: "Address added successfully"})
 }
-*/
+
+func UpdateAddress(c *fiber.Ctx) error {
+	return c.Status(fiber.StatusOK).JSON(&models.ResponsePacket{Error: false, Code: "success", Message: "Address added successfully"})
+}
+
+func DeleteAddress(c *fiber.Ctx) error {
+	return c.Status(fiber.StatusOK).JSON(&models.ResponsePacket{Error: false, Code: "success", Message: "Address added successfully"})
+}

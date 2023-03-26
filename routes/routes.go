@@ -27,12 +27,23 @@ func AllRoutes(app *fiber.App) {
 	//temporary
 	//app.Post("api/v2/savefile", controller.SaveFile)
 
-	app.Get(fmt.Sprintf("%s/getallusers", version), controller.GetAllUsers)
+	//app.Get(fmt.Sprintf("%s/getallusers", version), controller.GetAllUsers)
 
 	// PROTECTED ROUTES
-	//app.Get(fmt.Sprintf("%s/getallusers", version), middleware.Protected(), controller.GetAllUsers)
-	app.Patch(fmt.Sprintf("%s/updateuser", version), middleware.Protected(), middleware.Limiter(6, 60), controller.UpdateUser)
-	app.Post(fmt.Sprintf("%s/createdevice", version), middleware.Protected(), controller.AddDevice)
+	app.Get(fmt.Sprintf("%s/users", version), middleware.Protected(), controller.GetAllUsers)
+	app.Get(fmt.Sprintf("%s/users/:id", version), middleware.Protected(), middleware.Limiter(6, 60), controller.GetUser)
+	app.Patch(fmt.Sprintf("%s/users/:id", version), middleware.Protected(), middleware.Limiter(6, 60), controller.UpdateUser)
+
+	app.Get(fmt.Sprintf("%s/users/:id/address", version), middleware.Protected(), controller.GetAddress)
+	app.Post(fmt.Sprintf("%s/users/:id/address", version), middleware.Protected(), controller.AddAddress)
+	app.Patch(fmt.Sprintf("%s/users/:id/address/:id", version), middleware.Protected(), controller.UpdateAddress)
+	app.Delete(fmt.Sprintf("%s/users/:id/address/:id", version), middleware.Protected(), controller.DeleteAddress)
+
+	app.Get(fmt.Sprintf("%s/users/:id/device", version), middleware.Protected(), controller.GetDevice)
+	app.Post(fmt.Sprintf("%s/users/:id/device", version), middleware.Protected(), controller.AddDevice)
+	app.Patch(fmt.Sprintf("%s/users/:id/device/:id", version), middleware.Protected(), controller.UpdateDevice)
+	app.Delete(fmt.Sprintf("%s/users/:id/device/:id", version), middleware.Protected(), controller.DeleteDevice)
+
 	//app.Patch(fmt.Sprintf("%s/uploadpic", version), middleware.Protected(), controller.UpdateProfilePic)
 	app.Post(fmt.Sprintf("%s/updatepassword", version), middleware.Protected(), middleware.Limiter(6, 45), controller.UpdatePassword)
 
