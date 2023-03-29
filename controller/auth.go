@@ -139,6 +139,11 @@ func Login(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(rp)
 }
 
+func Logout(c *fiber.Ctx) error {
+	c.ClearCookie("X-Maker-Token")
+	return c.Redirect("/login", fiber.StatusSeeOther)
+}
+
 // Email Verification Route
 //
 // TODO Needs to be changed to a link verification method
