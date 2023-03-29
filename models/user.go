@@ -15,20 +15,21 @@ type User struct {
 
 type UserDetails struct {
 	gorm.Model
-	FirstName    string        `json:"firstName"`
-	LastName     string        `json:"lastName"`
-	Bio          string        `json:"bio"`
-	Interests    string        `json:"interests"`
-	Organization string        `json:"organization"` // The organization the user is affiliated with.
-	Occupation   string        `json:"occupation"`
-	Education    string        `json:"education"`                                     // The level of education the user has achieved
-	Devices      []Device      `json:"devices;" gorm:"constraint:OnDelete:SET NULL;"` // List of devices that the user has submitted.
-	Addresses    []UserAddress `json:"addresses;" gorm:"constraint:OnDelete:CASCADE;"`
-	Requests     []UserRequest `json:"requests;" gorm:"constraint:OnDelete:CASCADE"` // List of devices the user has requested.
-	Makes        []UserMake    `json:"makes;" gorm:"constraint:OnDelete:CASCADE"`    // List of devices the user has helped make.
-	Ideas        []UserIdea    `json:"ideas;" gorm:"constraint:OnDelete:CASCADE"`    // List of ideas and or suggestions the user has submitted.
-	Reviews      []Review      `json:"reviews;" gorm:"constraint:OnDelete:CASCADE"`  // List of reviews the user has submitted for various devices.
-	UserID       uint          `json:"userID" gorm:"unique"`
+	FirstName         string            `json:"firstName"`
+	LastName          string            `json:"lastName"`
+	Bio               string            `json:"bio"`
+	Interests         string            `json:"interests"`
+	Organization      string            `json:"organization"` // The organization the user is affiliated with.
+	Occupation        string            `json:"occupation"`
+	Education         string            `json:"education"`                                     // The level of education the user has achieved
+	Devices           []Device          `json:"devices;" gorm:"constraint:OnDelete:SET NULL;"` // List of devices that the user has submitted.
+	Addresses         []UserAddress     `json:"addresses;" gorm:"constraint:OnDelete:CASCADE;"`
+	Requests          []UserRequest     `json:"requests;" gorm:"constraint:OnDelete:CASCADE"` // List of devices the user has requested.
+	Makes             []UserMake        `json:"makes;" gorm:"constraint:OnDelete:CASCADE"`    // List of devices the user has helped make.
+	Ideas             []UserIdea        `json:"ideas;" gorm:"constraint:OnDelete:CASCADE"`    // List of ideas and or suggestions the user has submitted.
+	Reviews           []Review          `json:"reviews;" gorm:"constraint:OnDelete:CASCADE"`  // List of reviews the user has submitted for various devices.
+	UserID            uint              `json:"userID" gorm:"unique"`
+	UserAccountStatus UserAccountStatus `json:"-" gorm:"constraint:OnDelete:CASCADE;"`
 }
 
 type UserAddress struct {
@@ -68,5 +69,12 @@ type UserProfilePicture struct {
 	UrlSafeName   string `json:"urlSafeName"`
 	UserImage     []byte `json:"userImage"`
 	ImageAltText  string `json:"imageAltText"`
+	UserDetailsID uint   `json:"userDetailsID"`
+}
+
+type UserAccountStatus struct {
+	gorm.Model
+	IsSuspended   bool   `json:"isSuspended" gorm:"required"`
+	SuspensionMsg string `json:"suspensionMsg" gorm:"required"`
 	UserDetailsID uint   `json:"userDetailsID"`
 }

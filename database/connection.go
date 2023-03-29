@@ -37,6 +37,7 @@ func Connect() {
 		&models.UserMake{},
 		&models.UserIdea{},
 		&models.UserProfilePicture{},
+		&models.UserAccountStatus{},
 
 		&models.Device{},
 		&models.DeviceCapability{},
