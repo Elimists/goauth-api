@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"html/template"
 	"strconv"
 
 	"github.com/Elimists/go-app/database"
@@ -8,6 +9,11 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
 )
+
+type User struct {
+	Name  string
+	Email string
+}
 
 func GetUser(c *fiber.Ctx) error {
 
@@ -27,30 +33,87 @@ func GetUser(c *fiber.Ctx) error {
 func GetAllUsers(c *fiber.Ctx) error {
 
 	/*
-		token := c.Locals("user").(*jwt.Token)
-		claims := token.Claims.(jwt.MapClaims)
+			token := c.Locals("user").(*jwt.Token)
+			claims := token.Claims.(jwt.MapClaims)
 
-		if claims["privilege"].(float64) > 3 {
-			rp := models.ResponsePacket{Error: true, Code: "insufficient_privileges", Message: "You do not have sufficient privilege to perform this action!"}
-			return c.Status(fiber.StatusNotAcceptable).JSON(rp)
+			if claims["privilege"].(float64) > 3 {
+				rp := models.ResponsePacket{Error: true, Code: "insufficient_privileges", Message: "You do not have sufficient privilege to perform this action!"}
+				return c.Status(fiber.StatusNotAcceptable).JSON(rp)
+			}
+
+
+		RETURN_LIMIT := 30
+		params := c.AllParams()
+		pagenum, _ := strconv.Atoi(params["pagenumber"])
+		if pagenum == 0 {
+			pagenum = 1
 		}
+
+		offset := (pagenum - 1) * RETURN_LIMIT
+
+		var users []*models.User
+
+		database.DB.Offset(offset).Limit(RETURN_LIMIT).Preload("User").Find(&users)
+
+		return c.Status(fiber.StatusAccepted).JSON(&users)
 	*/
 
-	RETURN_LIMIT := 30
-	params := c.AllParams()
-	pagenum, _ := strconv.Atoi(params["pagenumber"])
-	if pagenum == 0 {
-		pagenum = 1
+	users := []User{
+		{Name: "Alice", Email: "alice@example.com"},
+		{Name: "Bob", Email: "bob@example.com"},
+		{Name: "Charlie", Email: "charlie@example.com"},
+		{Name: "David", Email: "david@example.com"},
+		{Name: "Emily", Email: "emily@example.com"},
+		{Name: "Frank", Email: "frank@example.com"},
+		{Name: "Grace", Email: "grace@example.com"},
+		{Name: "Henry", Email: "henry@example.com"},
+		{Name: "Ivy", Email: "ivy@example.com"},
+		{Name: "Jack", Email: "jack@example.com"},
 	}
 
-	offset := (pagenum - 1) * RETURN_LIMIT
+	// Parse the template
+	t, err := template.ParseFiles("./static/html/users.html")
+	if err != nil {
+		return err
+	}
 
-	var users []*models.User
+	// Determine the page number and page size
+	page := 1
+	pageSize := 3
+	if pageParam := c.Query("page"); pageParam != "" {
+		page, _ = strconv.Atoi(pageParam)
+	}
+	startIndex := (page - 1) * pageSize
+	endIndex := startIndex + pageSize
+	if endIndex > len(users) {
+		endIndex = len(users)
+	}
 
-	database.DB.Offset(offset).Limit(RETURN_LIMIT).Preload("User").Find(&users)
+	// Filter the user data to the current page
+	filteredUsers := users[startIndex:endIndex]
 
-	return c.Status(fiber.StatusAccepted).JSON(&users)
+	// Render the template with the user data and pagination links
+	err = t.Execute(c.Response().BodyWriter(), struct {
+		Users       []User
+		CurrentPage int
+		TotalPages  int
+		PrevPage    int
+		NextPage    int
+	}{
+		Users:       filteredUsers,
+		CurrentPage: page,
+		TotalPages:  (len(users) + pageSize - 1) / pageSize,
+		PrevPage:    page - 1,
+		NextPage:    page + 1,
+	})
+	if err != nil {
+		return err
+	}
 
+	// Set the Content-Type header to text/html
+	c.Set("Content-Type", "text/html")
+
+	return nil
 }
 
 func UpdateUser(c *fiber.Ctx) error {

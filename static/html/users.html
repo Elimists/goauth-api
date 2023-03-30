@@ -1,0 +1,22 @@
+<html>
+<head>
+    <title>Users</title>
+</head>
+<body>
+    <h1>Users</h1>
+    <ul>
+        {{ range .Users }}
+        <li>{{ .Name }} ({{ .Email }})</li>
+        {{ end }}
+    </ul>
+    <div>
+        {{ if gt .PrevPage 0 }}
+            <a href="?page={{ .PrevPage }}">Prev</a>
+        {{ end }}
+        
+        {{ if lt .NextPage .TotalPages }}
+            <a href="?page={{ .NextPage }}">Next</a>
+        {{ end }}
+    </div>
+</body>
+</html>

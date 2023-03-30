@@ -27,10 +27,10 @@ func AllRoutes(app *fiber.App) {
 	//temporary
 	//app.Post("api/v2/savefile", controller.SaveFile)
 
-	//app.Get(fmt.Sprintf("%s/getallusers", version), controller.GetAllUsers)
+	app.Get(fmt.Sprintf("%s/users", version), controller.GetAllUsers)
 
 	// PROTECTED ROUTES
-	app.Get(fmt.Sprintf("%s/users", version), middleware.Protected(), controller.GetAllUsers)
+	//app.Get(fmt.Sprintf("%s/users", version), middleware.Protected(), controller.GetAllUsers)
 	app.Get(fmt.Sprintf("%s/users/:id", version), middleware.Protected(), middleware.Limiter(6, 60), controller.GetUser)
 	app.Patch(fmt.Sprintf("%s/users/:id", version), middleware.Protected(), middleware.Limiter(6, 60), controller.UpdateUser)
 
