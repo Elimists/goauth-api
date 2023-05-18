@@ -9,6 +9,7 @@ import (
 
 func main() {
 	database.Connect()
+	//database.ConnectMongoDB()
 	app := fiber.New()
 
 	app.Use(

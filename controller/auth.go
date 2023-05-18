@@ -180,6 +180,7 @@ func VerifyEmail(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusAccepted).JSON(rp)
 }
 
+/*Update Password*/
 func UpdatePassword(c *fiber.Ctx) error {
 	var data map[string]string
 
@@ -202,15 +203,71 @@ func UpdatePassword(c *fiber.Ctx) error {
 
 }
 
+/*Password Reset*/
 func ResetPassword(c *fiber.Ctx) error {
-	//TODO
-	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthroized"})
+	var data map[string]string
+
+	if err := c.BodyParser(&data); err != nil {
+		rp := models.ResponsePacket{Error: true, Code: "empty_body", Message: "Nothing in body"}
+		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
+	}
+
+	if len(data["email"]) <= 0 {
+		rp := models.ResponsePacket{Error: true, Code: "missing_data", Message: "Form is missing required data!"}
+		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
+	}
+
+	if !emailIsValid(data["email"]) {
+		rp := models.ResponsePacket{Error: true, Code: "invalid_email", Message: "Email is not valid."}
+		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
+	}
+
+	var user models.User
+	if err := database.DB.Where("email = ?", data["email"]).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			rp := models.ResponsePacket{Error: true, Code: "not_found", Message: "User not found."}
+			return c.Status(fiber.StatusNotFound).JSON(rp)
+		}
+		rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Internal error."}
+		return c.Status(fiber.StatusInternalServerError).JSON(rp)
+	}
+
+	err := SendPasswordResetEmail(user.Email)
+	if err != nil {
+		rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Could not send email."}
+		return c.Status(fiber.StatusInternalServerError).JSON(rp)
+	}
+
+	return c.Status(fiber.StatusAccepted).JSON(fiber.Map{"message": "Email sent!"})
 }
 
-//__________________________________________________________________________
 /*
-* HELPER FUNCTIONS
+ * HELPER FUNCTIONS
  */
+func SendPasswordResetEmail(email string) error {
+
+	auth := smtp.PlainAuth("", "231c63d58c7571", "15065dc065bf4c", "sandbox.smtp.mailtrap.io")
+
+	to := []string{email}
+	subject := "Subject: Password Reset\n"
+	from := "maker@example.com"
+	mime := "MIME-version: 1.0;\nContent-Type: text/html; charset=\"UTF-8\";\n\n"
+	body := fmt.Sprintf(`
+		<html>
+			<div  style="font-size:20px; font-family: Arial, serif;">
+				<p>Hi there,</p>
+				<p>It looks like you requested a password reset. If this was you, please click the link below to reset your password.</p>
+				<p>If you did not request a password reset, please ignore this email.</p>
+				<p>Reset your password here: <code style="font-weight: bold;"><button>Reset Password</button></p>
+			</div>
+		</html>
+		`)
+	msg := []byte(subject + mime + body)
+
+	err := smtp.SendMail("sandbox.smtp.mailtrap.io:2525", auth, from, to, msg)
+	return err
+}
+
 func emailIsValid(s string) bool {
 	emailRegex := regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,4}$`)
 	return emailRegex.MatchString(s)
