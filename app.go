@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/Elimists/go-app/controller"
 	"github.com/Elimists/go-app/database"
 	"github.com/Elimists/go-app/routes"
 	"github.com/gofiber/fiber/v2"
@@ -9,7 +10,7 @@ import (
 
 func main() {
 	database.Connect()
-	//database.ConnectMongoDB()
+	go controller.EmailVerificationWorker()
 	app := fiber.New()
 
 	app.Use(

@@ -1,8 +1,10 @@
 package controller
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/smtp"
 	"os"
@@ -14,11 +16,14 @@ import (
 
 	"github.com/Elimists/go-app/database"
 	"github.com/Elimists/go-app/models"
+	"github.com/eapache/channels"
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
+
+var emailQueue = channels.NewInfiniteChannel()
 
 // Register a new user.
 //
@@ -43,13 +48,13 @@ func Register(c *fiber.Ctx) error {
 	}
 
 	password, _ := bcrypt.GenerateFromPassword([]byte(data["password"]), 12)
-
+	verificationCode := generateVerificationCode()
 	auth := models.User{
 		Email:              data["email"],
 		Password:           password,
 		Privilege:          9, // General user.
 		Verified:           false,
-		VerificationCode:   generateVerificationCode(),
+		VerificationCode:   verificationCode,
 		VerificationExpiry: uint(time.Now().Add(time.Minute * 30).Unix()),
 		UserDetails: models.UserDetails{
 			FirstName: data["firstName"],
@@ -68,17 +73,30 @@ func Register(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(rp)
 	}
 
-	//Send verification email here
-	emailSendingError := SendVerificationCode(data["email"], auth.VerificationCode)
+	// Add email and verificationCode to inmemory queue.
+	body := fmt.Sprintf(`{"email": "%s", "verificationCode": "%s"}`, data["email"], verificationCode)
+	emailQueue.In() <- body
 
-	if emailSendingError {
-		database.DB.Where("email = ?", data["email"]).Delete(&auth)
-		rp := models.ResponsePacket{Error: false, Code: "email_sending_error", Message: "Unable to send email.DB Row rollbacked."}
-		return c.Status(fiber.StatusInternalServerError).JSON(rp)
-	}
-
-	rp := models.ResponsePacket{Error: false, Code: "user_registered", Message: `models.User`}
+	rp := models.ResponsePacket{Error: false, Code: "user_registered", Message: "User registered successfully."}
 	return c.Status(fiber.StatusCreated).JSON(rp)
+}
+
+func EmailVerificationWorker() {
+	for payload := range emailQueue.Out() {
+		var data map[string]string
+		err := json.Unmarshal([]byte(payload.(string)), &data)
+		if err != nil {
+			log.Printf("Error unmarshalling email payload: %s", err.Error())
+			continue
+		}
+		email := data["email"]
+		verificationCode := data["verificationCode"]
+
+		//Send email
+		if err := SendVerificationEmail(email, verificationCode); err != nil {
+			log.Printf("Error sending verification email: %s", err.Error())
+		}
+	}
 }
 
 // Login route method
@@ -307,7 +325,7 @@ func generateVerificationCode() string {
 }
 
 // Send the verification code to the user.
-func SendVerificationCode(email string, verificationCode string) bool {
+func SendVerificationEmail(email string, verificationCode string) error {
 	// Set up authentication information.
 	auth := smtp.PlainAuth("", "231c63d58c7571", "15065dc065bf4c", "sandbox.smtp.mailtrap.io")
 
@@ -325,9 +343,5 @@ func SendVerificationCode(email string, verificationCode string) bool {
 	msg := []byte(subject + mime + body)
 
 	err := smtp.SendMail("sandbox.smtp.mailtrap.io:2525", auth, from, to, msg)
-	if err != nil {
-		return true
-	}
-
-	return false
+	return err
 }
