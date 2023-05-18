@@ -192,19 +192,32 @@ func VerifyEmail(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(rp)
 	}
 
+	// Check if verification code has expired. If expired, send a new one.
 	if uint(time.Now().Unix()) > verification.VerificationExpiry {
-		rp := models.ResponsePacket{Error: true, Code: "expired", Message: "Verfication time frame has expired."}
+		if err := database.DB.Model(&verification).Where("email = ?", decodedEmail).Updates(map[string]interface{}{
+			"verification_expiry": uint(time.Now().Add(time.Minute * 30).Unix())}).Error; err != nil {
+			rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Verification time frame has expired, however server encountered problem while sending a new link. Please try again later."}
+			return c.Status(fiber.StatusInternalServerError).JSON(rp)
+		}
+
+		verificationLink := fmt.Sprintf("http://localhost:8000/api/v2/verify/%s/%s", email, verificationCode)
+
+		body := fmt.Sprintf(`{"email": "%s", "verificationLink": "%s"}`, email, verificationLink)
+		emailQueue.In() <- body
+
+		rp := models.ResponsePacket{Error: true, Code: "expired", Message: "Verfication time frame has expired. A new link has been sent to your email."}
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
+	// Check if verification code matches.
 	if verification.VerificationCode != string(decodedVerificationCode) {
 		rp := models.ResponsePacket{Error: true, Code: "code_mismatch", Message: "Verification code does not match."}
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
-	if err := database.DB.Model(&verification).Where("email = ?", decodedEmail).Updates(map[string]interface{}{"verified": true}).Error; err != nil {
+	if err := database.DB.Model(&verification).Where("email = ?", decodedEmail).Updates(map[string]interface{}{"verified": true, "verification_code": gorm.Expr("NULL")}).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			rp := models.ResponsePacket{Error: true, Code: "not_found", Message: "Unable to update verification status."}
+			rp := models.ResponsePacket{Error: true, Code: "not_found", Message: "Unable to update verification status for the user."}
 			return c.Status(fiber.StatusInternalServerError).JSON(rp)
 		}
 		rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Internal server error."}
