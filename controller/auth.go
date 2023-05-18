@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -73,8 +74,13 @@ func Register(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(rp)
 	}
 
+	encodedEmail := base64.StdEncoding.EncodeToString([]byte(data["email"]))
+	encodedVerificationCode := base64.StdEncoding.EncodeToString([]byte(verificationCode))
+
+	verificationLink := fmt.Sprintf("http://localhost:8000/api/v2/verify/%s/%s", encodedEmail, encodedVerificationCode)
+
 	// Add email and verificationCode to inmemory queue.
-	body := fmt.Sprintf(`{"email": "%s", "verificationCode": "%s"}`, data["email"], verificationCode)
+	body := fmt.Sprintf(`{"email": "%s", "verificationLink": "%s"}`, encodedEmail, verificationLink)
 	emailQueue.In() <- body
 
 	rp := models.ResponsePacket{Error: false, Code: "user_registered", Message: "User registered successfully."}
@@ -90,10 +96,10 @@ func EmailVerificationWorker() {
 			continue
 		}
 		email := data["email"]
-		verificationCode := data["verificationCode"]
+		verificationLink := data["verificationLink"]
 
 		//Send email
-		if err := SendVerificationEmail(email, verificationCode); err != nil {
+		if err := SendVerificationEmail(email, verificationLink); err != nil {
 			log.Printf("Error sending verification email: %s", err.Error())
 		}
 	}
@@ -158,23 +164,32 @@ func Login(c *fiber.Ctx) error {
 }
 
 // Email Verification Route
-//
-// TODO Needs to be changed to a link verification method
 func VerifyEmail(c *fiber.Ctx) error {
-	var data map[string]string
+	// Grab data from url
+	verificationCode := c.Params("verificationCode")
+	email := c.Params("email")
 
-	if err := c.BodyParser(&data); err != nil {
-		rp := models.ResponsePacket{Error: true, Code: "empty_body", Message: "Nothing in body"}
+	if verificationCode == "" || email == "" {
+		rp := models.ResponsePacket{Error: true, Code: "empty_code", Message: "Missing data in url."}
+		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
+	}
+
+	decodedEmail, err := base64.StdEncoding.DecodeString(email)
+	decodedVerificationCode, err := base64.StdEncoding.DecodeString(verificationCode)
+	if err != nil {
+		rp := models.ResponsePacket{Error: true, Code: "invalid_email", Message: "Invalid email."}
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
 	var verification models.User
 
-	if err := database.DB.Where("email = ?", data["email"]).First(&verification).Error; err != nil {
+	if err := database.DB.Where("email = ?", decodedEmail).First(&verification).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			rp := models.ResponsePacket{Error: true, Code: "not_found", Message: "Verification code for this user does not exsist"}
 			return c.Status(fiber.StatusNotFound).JSON(rp)
 		}
+		rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Internal server error."}
+		return c.Status(fiber.StatusInternalServerError).JSON(rp)
 	}
 
 	if uint(time.Now().Unix()) > verification.VerificationExpiry {
@@ -182,19 +197,21 @@ func VerifyEmail(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
-	if verification.VerificationCode != data["code"] {
+	if verification.VerificationCode != string(decodedVerificationCode) {
 		rp := models.ResponsePacket{Error: true, Code: "code_mismatch", Message: "Verification code does not match."}
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
-	if err := database.DB.Model(&verification).Where("email = ?", data["email"]).Updates(map[string]interface{}{"verified": true}).Error; err != nil {
+	if err := database.DB.Model(&verification).Where("email = ?", decodedEmail).Updates(map[string]interface{}{"verified": true}).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			rp := models.ResponsePacket{Error: true, Code: "not_found", Message: "Could not set verification status to True"}
+			rp := models.ResponsePacket{Error: true, Code: "not_found", Message: "Unable to update verification status."}
 			return c.Status(fiber.StatusInternalServerError).JSON(rp)
 		}
+		rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Internal server error."}
+		return c.Status(fiber.StatusInternalServerError).JSON(rp)
 	}
 
-	rp := models.ResponsePacket{Error: false, Code: "verified", Message: "Verification of email successfull!"}
+	rp := models.ResponsePacket{Error: false, Code: "verified", Message: "Verification successfull."}
 	return c.Status(fiber.StatusAccepted).JSON(rp)
 }
 
@@ -325,7 +342,7 @@ func generateVerificationCode() string {
 }
 
 // Send the verification code to the user.
-func SendVerificationEmail(email string, verificationCode string) error {
+func SendVerificationEmail(email string, verificationLink string) error {
 	// Set up authentication information.
 	auth := smtp.PlainAuth("", "231c63d58c7571", "15065dc065bf4c", "sandbox.smtp.mailtrap.io")
 
@@ -336,10 +353,11 @@ func SendVerificationEmail(email string, verificationCode string) error {
 	body := fmt.Sprintf(`
 		<html>
 			<div  style="font-size:20px; font-family: Arial, serif;">
-				<p>Here is your verification code: <code style="font-weight: bold;">%s</code></p>
+				<p>Clink the link below to verify your email address.</p>
+				<a href="%s">Verify Email</a>
 			</div>
 		</html>
-		`, verificationCode)
+		`, verificationLink)
 	msg := []byte(subject + mime + body)
 
 	err := smtp.SendMail("sandbox.smtp.mailtrap.io:2525", auth, from, to, msg)
