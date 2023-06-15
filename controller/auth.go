@@ -51,12 +51,14 @@ func Register(c *fiber.Ctx) error {
 	password, _ := bcrypt.GenerateFromPassword([]byte(data["password"]), 12)
 	verificationCode := generateVerificationCode()
 	auth := models.User{
-		Email:              data["email"],
-		Password:           password,
-		Privilege:          9, // General user.
-		Verified:           false,
-		VerificationCode:   verificationCode,
-		VerificationExpiry: uint(time.Now().Add(time.Minute * 30).Unix()),
+		Email:     data["email"],
+		Password:  password,
+		Privilege: 9, // General user.
+		Verified:  false,
+		UserVerification: models.UserVerification{
+			VerificationCode:   verificationCode,
+			VerificationExpiry: uint(time.Now().Add(time.Minute * 30).Unix()),
+		},
 		UserDetails: models.UserDetails{
 			FirstName: data["firstName"],
 			LastName:  data["lastName"],
@@ -157,7 +159,7 @@ func Login(c *fiber.Ctx) error {
 
 	database.DB.Model(&auth).Where("email = ?", data["email"]).Update("updated_at", time.Now()) // update the last logged in datetime
 
-	c.Append("X-Maker-Token", signedToken)
+	c.Append("X-Maker-User-Token", signedToken)
 
 	rp := models.ResponsePacket{Error: false, Code: "successfull", Message: "Login successfull"}
 	return c.Status(fiber.StatusOK).JSON(rp)
@@ -181,20 +183,27 @@ func VerifyEmail(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
-	var verification models.User
+	var user models.User
 
-	if err := database.DB.Where("email = ?", decodedEmail).First(&verification).Error; err != nil {
+	if err := database.DB.Where("email = ?", decodedEmail).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			rp := models.ResponsePacket{Error: true, Code: "not_found", Message: "Verification code for this user does not exsist"}
+			rp := models.ResponsePacket{Error: true, Code: "not_found", Message: "User not found."}
 			return c.Status(fiber.StatusNotFound).JSON(rp)
 		}
 		rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Internal server error."}
 		return c.Status(fiber.StatusInternalServerError).JSON(rp)
 	}
 
+	if user.Verified {
+		rp := models.ResponsePacket{Error: true, Code: "already_verified", Message: "Email is already verified."}
+		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
+	}
+
+	var userVerification models.UserVerification
+
 	// Check if verification code has expired. If expired, send a new one.
-	if uint(time.Now().Unix()) > verification.VerificationExpiry {
-		if err := database.DB.Model(&verification).Where("email = ?", decodedEmail).Updates(map[string]interface{}{
+	if uint(time.Now().Unix()) > userVerification.VerificationExpiry {
+		if err := database.DB.Model(&userVerification).Where("email = ?", decodedEmail).Updates(map[string]interface{}{
 			"verification_expiry": uint(time.Now().Add(time.Minute * 30).Unix())}).Error; err != nil {
 			rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Verification time frame has expired, however server encountered problem while sending a new link. Please try again later."}
 			return c.Status(fiber.StatusInternalServerError).JSON(rp)
@@ -210,12 +219,12 @@ func VerifyEmail(c *fiber.Ctx) error {
 	}
 
 	// Check if verification code matches.
-	if verification.VerificationCode != string(decodedVerificationCode) {
+	if userVerification.VerificationCode != string(decodedVerificationCode) {
 		rp := models.ResponsePacket{Error: true, Code: "code_mismatch", Message: "Verification code does not match."}
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
-	if err := database.DB.Model(&verification).Where("email = ?", decodedEmail).Updates(map[string]interface{}{"verified": true, "verification_code": gorm.Expr("NULL")}).Error; err != nil {
+	if err := database.DB.Model(&userVerification).Where("email = ?", decodedEmail).Updates(map[string]interface{}{"verified": true, "verification_code": gorm.Expr("NULL")}).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			rp := models.ResponsePacket{Error: true, Code: "not_found", Message: "Unable to update verification status for the user."}
 			return c.Status(fiber.StatusInternalServerError).JSON(rp)

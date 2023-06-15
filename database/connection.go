@@ -30,6 +30,7 @@ func Connect() {
 	// Generate tables using the model if they don't exist.
 	db_conn.AutoMigrate(
 		&models.User{},
+		&models.UserVerification{},
 
 		&models.UserDetails{},
 		&models.UserAddress{},
