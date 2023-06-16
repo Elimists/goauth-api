@@ -60,8 +60,8 @@ func Register(c *fiber.Ctx) error {
 			VerificationExpiry: uint(time.Now().Add(time.Minute * 30).Unix()),
 		},
 		UserDetails: models.UserDetails{
-			FirstName: data["firstName"],
-			LastName:  data["lastName"],
+			FirstName: data["first_name"],
+			LastName:  data["last_name"],
 		},
 	}
 

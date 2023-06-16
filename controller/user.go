@@ -26,16 +26,6 @@ func GetUser(c *fiber.Ctx) error {
 
 func GetAllUsers(c *fiber.Ctx) error {
 
-	/*
-		token := c.Locals("user").(*jwt.Token)
-		claims := token.Claims.(jwt.MapClaims)
-
-		if claims["privilege"].(float64) > 3 {
-			rp := models.ResponsePacket{Error: true, Code: "insufficient_privileges", Message: "You do not have sufficient privilege to perform this action!"}
-			return c.Status(fiber.StatusNotAcceptable).JSON(rp)
-		}
-	*/
-
 	RETURN_LIMIT := 30
 	params := c.AllParams()
 	pagenum, _ := strconv.Atoi(params["pagenumber"])
@@ -47,7 +37,7 @@ func GetAllUsers(c *fiber.Ctx) error {
 
 	var users []*models.User
 
-	database.DB.Offset(offset).Limit(RETURN_LIMIT).Preload("User").Find(&users)
+	database.DB.Offset(offset).Limit(RETURN_LIMIT).Preload("UserDetails").Find(&users)
 
 	return c.Status(fiber.StatusAccepted).JSON(&users)
 

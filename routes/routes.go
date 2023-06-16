@@ -11,6 +11,10 @@ import (
 func AllRoutes(app *fiber.App) {
 
 	version := "/api/v2"
+
+	app.Get(fmt.Sprintf("%s", version), func(c *fiber.Ctx) error {
+		return c.SendFile("./public/pages/api-route.html")
+	})
 	/*AUTH Routes*/
 	app.Get(fmt.Sprintf("%s/verify/:email/:verificationCode", version), controller.VerifyEmail)
 	app.Post(fmt.Sprintf("%s/register", version), middleware.Limiter(5, 40), controller.Register)
