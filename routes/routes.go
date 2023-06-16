@@ -19,6 +19,7 @@ func AllRoutes(app *fiber.App) {
 	app.Get(fmt.Sprintf("%s/verify/:email/:verificationCode", version), controller.VerifyEmail)
 	app.Post(fmt.Sprintf("%s/register", version), middleware.Limiter(5, 40), controller.Register)
 	app.Post(fmt.Sprintf("%s/login", version), middleware.Limiter(6, 45), controller.Login)
+	app.Post(fmt.Sprintf("%s/logout", version), middleware.Limiter(6, 45), controller.Logout)
 	app.Post(fmt.Sprintf("%s/resetpassword", version), middleware.Limiter(6, 45), controller.ResetPassword)
 
 	/*USER Routes*/

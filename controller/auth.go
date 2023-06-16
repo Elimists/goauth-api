@@ -79,7 +79,7 @@ func Register(c *fiber.Ctx) error {
 	encodedEmail := base64.StdEncoding.EncodeToString([]byte(data["email"]))
 	encodedVerificationCode := base64.StdEncoding.EncodeToString([]byte(verificationCode))
 
-	verificationLink := fmt.Sprintf("http://localhost:8000/api/v2/verify/%s/%s", encodedEmail, encodedVerificationCode)
+	verificationLink := fmt.Sprintf("%s/api/v2/verify/%s/%s", os.Getenv("API_URL"), encodedEmail, encodedVerificationCode)
 
 	// Add email and verificationCode to inmemory queue.
 	body := fmt.Sprintf(`{"email": "%s", "verificationLink": "%s"}`, encodedEmail, verificationLink)
@@ -132,6 +132,8 @@ func Login(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
+	csrfToken := c.Cookies("custom_app_csrf")
+
 	expiry := jwt.NewNumericDate(time.Now().Add(24 * time.Hour))
 	if data["longerlogin"] == "yes" {
 		expiry = jwt.NewNumericDate(time.Now().Add(240 * time.Hour))
@@ -159,9 +161,25 @@ func Login(c *fiber.Ctx) error {
 
 	database.DB.Model(&auth).Where("email = ?", data["email"]).Update("updated_at", time.Now()) // update the last logged in datetime
 
-	c.Append("X-Maker-User-Token", signedToken)
+	c.Append(fmt.Sprintf("X-%s-JWT-Token", os.Getenv("API_NAME")), signedToken)
+
+	c.Cookie(&fiber.Cookie{
+		Name:     fmt.Sprintf("%s_csrf", os.Getenv("API_NAME")),
+		Value:    csrfToken,
+		Expires:  expiry.Time,
+		SameSite: "Lax",
+	})
+	c.Set(fmt.Sprintf("X-%s-CSRF-Token", os.Getenv("API_NAME")), csrfToken)
 
 	rp := models.ResponsePacket{Error: false, Code: "successfull", Message: "Login successfull"}
+	return c.Status(fiber.StatusOK).JSON(rp)
+}
+
+func Logout(c *fiber.Ctx) error {
+
+	c.ClearCookie("custom_app_jwt_token")
+
+	rp := models.ResponsePacket{Error: false, Code: "successfull", Message: "Logout successfull"}
 	return c.Status(fiber.StatusOK).JSON(rp)
 }
 

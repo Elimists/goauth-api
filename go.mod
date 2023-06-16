@@ -12,6 +12,7 @@ require (
 require (
 	github.com/eapache/queue v1.1.0 // indirect
 	github.com/gofiber/jwt/v3 v3.3.6 // indirect
+	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/philhofer/fwd v1.1.2 // indirect
 	github.com/savsgio/dictpool v0.0.0-20221023140959-7bf2e61cea94 // indirect
 	github.com/savsgio/gotils v0.0.0-20230208104028-c358bd845dee // indirect

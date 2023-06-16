@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"log"
+	"os"
 	"time"
 
 	"github.com/Elimists/go-app/controller"
@@ -9,7 +12,15 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/csrf"
+	"github.com/joho/godotenv"
 )
+
+func init() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+}
 
 func main() {
 	database.Connect()
@@ -23,14 +34,14 @@ func main() {
 	)
 
 	app.Use(csrf.New(csrf.Config{
-		KeyLookup:      "header:X-Maker-Csrf-Token",
-		CookieName:     "csrf_1",
+		KeyLookup:      fmt.Sprintf("header:X-%s-CSRF-Token", os.Getenv("API_NAME")),
+		CookieName:     fmt.Sprintf("%s_csrf", os.Getenv("API_NAME")),
 		CookieSameSite: "Lax",
-		Expiration:     15 * time.Minute,
+		Expiration:     1 * time.Hour,
 	}))
 
 	routes.AllRoutes(app)
-	//routes.ProtectedRoutes(app)
 
-	app.Listen(":8000")
+	app.Listen(fmt.Sprintf(":%s", os.Getenv("API_PORT")))
+
 }
