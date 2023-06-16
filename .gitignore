@@ -3,4 +3,5 @@
 uploads
 app
 *.mod
-.env
+.env.local
+.env.production
