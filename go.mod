@@ -10,6 +10,7 @@ require (
 )
 
 require (
+	github.com/eapache/queue v1.1.0 // indirect
 	github.com/gofiber/jwt/v3 v3.3.6 // indirect
 	github.com/philhofer/fwd v1.1.2 // indirect
 	github.com/savsgio/dictpool v0.0.0-20221023140959-7bf2e61cea94 // indirect
@@ -19,6 +20,7 @@ require (
 
 require (
 	github.com/andybalholm/brotli v1.0.5 // indirect
+	github.com/eapache/channels v1.1.0
 	github.com/go-sql-driver/mysql v1.7.0 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/uuid v1.3.0
