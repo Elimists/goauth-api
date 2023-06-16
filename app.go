@@ -49,5 +49,4 @@ func main() {
 	routes.AllRoutes(app)
 
 	app.Listen(fmt.Sprintf(":%s", os.Getenv("API_PORT")))
-
 }
