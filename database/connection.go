@@ -34,18 +34,6 @@ func Connect() {
 
 		&models.UserDetails{},
 		&models.UserAddress{},
-		&models.UserRequest{},
-		&models.UserMake{},
-		&models.UserIdea{},
 		&models.UserProfilePicture{},
-
-		&models.Device{},
-		&models.DeviceCapability{},
-		&models.DeviceDisability{},
-		&models.DeviceUsage{},
-		&models.DeviceFile{},
-		&models.DeviceImage{},
-
-		&models.Review{},
 	)
 }

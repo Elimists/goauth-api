@@ -16,7 +16,7 @@ type Device struct {
 	Usages         []DeviceUsage      `gorm:"constraint:OnDelete:CASCADE;"`
 	Images         []DeviceImage      `gorm:"constraint:OnDelete:CASCADE;"`
 	Reviews        []Review           `gorm:"constraint:OnDelete:SET NULL;"` // If the device is deleted, set the device ID for the reivew to null. The user is responsible for deleting the review.
-	UserDetailsID  uint               `json:"userID"`
+	UserPostsID    uint               `json:"userID"`
 }
 
 type DeviceCapability struct {
