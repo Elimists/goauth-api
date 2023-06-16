@@ -38,21 +38,29 @@ func Register(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
-	if !emailIsValid(data["email"]) {
+	if data["email"] == "" || data["password"] == "" {
+		rp := models.ResponsePacket{Error: true, Code: "empty_fields", Message: "Empty fields in body."}
+		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
+	}
+
+	decodedEmail, _ := base64.StdEncoding.DecodeString(data["email"])
+
+	if !emailIsValid(string(decodedEmail)) {
 		rp := models.ResponsePacket{Error: true, Code: "invalid_email", Message: "Email is not a valid type."}
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
-	if !passwordIsValid(data["password"]) {
+	decodedPassword, _ := base64.StdEncoding.DecodeString(data["password"])
+	if !passwordIsValid(string(decodedPassword)) {
 		rp := models.ResponsePacket{Error: true, Code: "invalid_password", Message: "Password is not strong enough."}
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
-	password, _ := bcrypt.GenerateFromPassword([]byte(data["password"]), 12)
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(decodedPassword), 12)
 	verificationCode := generateVerificationCode()
 	auth := models.User{
-		Email:     data["email"],
-		Password:  password,
+		Email:     string(decodedEmail),
+		Password:  hashedPassword,
 		Privilege: 9, // General user.
 		Verified:  false,
 		UserVerification: models.UserVerification{
@@ -135,7 +143,7 @@ func Login(c *fiber.Ctx) error {
 	csrfToken := c.Cookies("custom_app_csrf")
 
 	expiry := jwt.NewNumericDate(time.Now().Add(24 * time.Hour))
-	if data["longerlogin"] == "yes" {
+	if data["longerlogin"] == "true" {
 		expiry = jwt.NewNumericDate(time.Now().Add(240 * time.Hour))
 	}
 
@@ -227,7 +235,7 @@ func VerifyEmail(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusInternalServerError).JSON(rp)
 		}
 
-		verificationLink := fmt.Sprintf("http://localhost:8000/api/v2/verify/%s/%s", email, verificationCode)
+		verificationLink := fmt.Sprintf("%s/api/v2/verify/%s/%s", os.Getenv("API_URL"), email, verificationCode)
 
 		body := fmt.Sprintf(`{"email": "%s", "verificationLink": "%s"}`, email, verificationLink)
 		emailQueue.In() <- body
@@ -264,18 +272,48 @@ func UpdatePassword(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
-	if len(data["oldpassword"]) <= 0 || len(data["newpassword"]) <= 0 {
-		rp := models.ResponsePacket{Error: true, Code: "missing_data", Message: "Form is missing required data!"}
+	if data["email"] == "" {
+		rp := models.ResponsePacket{Error: true, Code: "missing_data", Message: "Email field is empty."}
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
-	//TODO - Implement changing password functionality
-	if !passwordIsValid(data["oldpassword"]) || !passwordIsValid(data["newpassword"]) {
+	decodedOldPassword, err := base64.StdEncoding.DecodeString(data["oldpassword"])
+	decodedNewPassword, err := base64.StdEncoding.DecodeString(data["newpassword"])
+	if len(string(decodedOldPassword)) <= 0 || len(string(decodedNewPassword)) <= 0 {
+		rp := models.ResponsePacket{Error: true, Code: "missing_data", Message: "Password field(s) are empty."}
+		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
+	}
+
+	if string(decodedOldPassword) == (string(decodedNewPassword)) {
+		rp := models.ResponsePacket{Error: true, Code: "same_password", Message: "New password cannot be the same as old password."}
+		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
+	}
+
+	if !passwordIsValid(string(decodedNewPassword)) {
 		rp := models.ResponsePacket{Error: true, Code: "invalid_password", Message: "Password is not strong enough."}
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
-	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthroized"})
 
+	decodedEmail, err := base64.StdEncoding.DecodeString(data["email"])
+	if err != nil {
+		rp := models.ResponsePacket{Error: true, Code: "invalid_email", Message: "Invalid email."}
+		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
+	}
+
+	updatedNewHashedPassword, _ := bcrypt.GenerateFromPassword([]byte(decodedNewPassword), 12)
+
+	var auth models.User
+
+	if err := database.DB.Model(&auth).Where("email = ?", decodedEmail).Updates(map[string]interface{}{"password": string(updatedNewHashedPassword)}).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			rp := models.ResponsePacket{Error: true, Code: "not_found", Message: "Unable to update password for user. User not found."}
+			return c.Status(fiber.StatusNotFound).JSON(rp)
+		}
+		rp := models.ResponsePacket{Error: true, Code: "internal_error", Message: "Internal server error. Could not update password"}
+		return c.Status(fiber.StatusInternalServerError).JSON(rp)
+	}
+
+	return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"message": "Unauthroized"})
 }
 
 /*Password Reset*/
