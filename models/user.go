@@ -45,18 +45,18 @@ type UserDetails struct {
 
 type UserAddress struct {
 	CustomModel
+	UserDetailsID uint   `json:"userDetailsID"` // References the user details id in the UserDetails table.
 	StreetAddress string `json:"streetAddress"`
 	City          string `json:"city"`
 	State         string `json:"state"`
 	ZipCode       string `json:"zipCode"`
 	Country       string `json:"country"`
 	IsActive      bool   `json:"isActive"`
-	UserDetailsID uint   `json:"userDetailsID"`
 }
 type UserProfilePicture struct {
 	CustomModel
+	UserDetailsID uint   `json:"userDetailsID"` // References the user details id in the UserDetails table.
 	UrlSafeName   string `json:"urlSafeName"`
 	UserImage     []byte `json:"userImage"`
 	ImageAltText  string `json:"imageAltText"`
-	UserDetailsID uint   `json:"userDetailsID"`
 }
