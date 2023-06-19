@@ -1,0 +1,59 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600&family=Unbounded:wght@200&display=swap');
+
+.container{
+    font-family: 'Manrope', sans-serif;
+    font-family: 'Unbounded', cursive;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.container > div{
+    display: flex;
+    flex-direction: column;
+    max-width: 90%;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    padding: 1rem;
+}
+
+form{
+    display: flex;
+    flex-direction: column;
+   
+}
+
+input{
+    margin: 0.2rem 0px 1rem 0px;
+    padding: 10px;
+    border-radius: 8px;
+    border: 0.4px solid black;
+    max-width: 100%;
+    font-size: 18px;
+}
+
+label{
+    margin-left: 2px;
+    font-weight: 500;
+}
+
+input[type="submit"] {
+    font-size: 20px;
+    cursor: pointer !important;
+    background-color: #4CAF50;
+    color: aliceblue;
+  }
+
+#error-msg{
+    padding: 1rem;
+    background-color: rgb(231, 105, 105);
+    border-radius: 8px;
+    color: white;
+    display: none;
+}
+
+.required-asterisk {
+    color: rgb(218, 42, 42);
+    margin-left: 4px;
+    font-weight: 600;
+    border: none;
+  }

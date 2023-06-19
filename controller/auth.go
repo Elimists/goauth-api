@@ -26,6 +26,10 @@ import (
 
 var emailQueue = channels.NewInfiniteChannel()
 
+func ShowRegistrationForm(c *fiber.Ctx) error {
+	return c.Render("./public/html/auth/registration.html", nil)
+}
+
 // Register a new user.
 //
 // @Summary Register a new user.
@@ -34,29 +38,33 @@ func Register(c *fiber.Ctx) error {
 	var data map[string]string
 
 	if err := c.BodyParser(&data); err != nil {
-		rp := models.ResponsePacket{Error: true, Code: "empty_body", Message: "Nothing in body"}
+		rp := models.ResponsePacket{Error: true, Code: "empty_body", Message: "Missing required fields."}
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
 	if data["email"] == "" || data["password"] == "" {
-		rp := models.ResponsePacket{Error: true, Code: "empty_fields", Message: "Empty fields in body."}
+		rp := models.ResponsePacket{Error: true, Code: "empty_fields", Message: "Missing required fields."}
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
 	decodedEmail, _ := base64.StdEncoding.DecodeString(data["email"])
 
 	if !emailIsValid(string(decodedEmail)) {
-		rp := models.ResponsePacket{Error: true, Code: "invalid_email", Message: "Email is not a valid type."}
+		rp := models.ResponsePacket{Error: true, Code: "invalid_email", Message: "Email is not valid."}
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
-	decodedPassword, _ := base64.StdEncoding.DecodeString(data["password"])
-	if !passwordIsValid(string(decodedPassword)) {
+	if data["password"] != data["password2"] {
+		rp := models.ResponsePacket{Error: true, Code: "password_mismatch", Message: "Passwords do not match."}
+		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
+	}
+
+	if !passwordIsValid(data["password"]) {
 		rp := models.ResponsePacket{Error: true, Code: "invalid_password", Message: "Password is not strong enough."}
 		return c.Status(fiber.StatusNotAcceptable).JSON(rp)
 	}
 
-	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(decodedPassword), 12)
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(data["password"]), 12)
 	verificationCode := generateVerificationCode()
 	auth := models.User{
 		Email:     string(decodedEmail),
@@ -94,7 +102,7 @@ func Register(c *fiber.Ctx) error {
 	emailQueue.In() <- body
 
 	rp := models.ResponsePacket{Error: false, Code: "user_registered", Message: "User registered successfully."}
-	return c.Status(fiber.StatusCreated).JSON(rp)
+	return c.Status(fiber.StatusOK).JSON(rp)
 }
 
 func EmailVerificationWorker() {

@@ -33,9 +33,13 @@ func main() {
 	go controller.EmailVerificationWorker()
 	app := fiber.New()
 
+	app.Static("/", "./public")
+
 	app.Use(
 		cors.New(cors.Config{
 			AllowCredentials: true,
+			AllowOrigins:     "*",
+			AllowMethods:     "GET,POST,PUT,DELETE",
 		}),
 	)
 
